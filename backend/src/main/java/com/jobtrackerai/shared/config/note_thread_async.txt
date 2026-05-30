@@ -1,0 +1,65 @@
+Thread Pool là gì?
+Hình dung nhà hàng:
+Khách vào gọi món (request)
+→ Bếp trưởng (thread) nấu món (xử lý task)
+→ Nấu xong → phục vụ khách tiếp theo
+Không có thread pool — mỗi request tạo 1 thread mới:
+100 request đến cùng lúc
+→ Tạo 100 thread cùng lúc
+→ RAM hết → app crash
+Có thread pool — tạo sẵn một số thread cố định, tái sử dụng:
+Tạo sẵn 3 thread (3 đầu bếp)
+→ 100 request đến
+→ 3 request chạy song song
+→ 97 request còn lại xếp hàng chờ
+→ Thread nào xong việc → nhận task tiếp theo
+
+Tại sao cần @Async + Thread Pool?
+Khi user tạo application:
+User bấm "Create"
+→ Lưu DB (0.1 giây) ✓
+→ Gọi Gemini AI để phân tích CV-JD (5-10 giây) ← vấn đề!
+
+Nếu chạy tuần tự:
+→ User phải đợi 10 giây mới thấy kết quả
+→ Rất tệ về UX
+Với @Async:
+User bấm "Create"
+→ Lưu DB (0.1 giây)
+→ Đẩy task AI vào thread pool (tách ra chạy riêng)
+→ Trả về response ngay cho user ✓
+→ AI chạy ngầm trong background
+→ Xong thì update DB
+
+ĐỊNH NGHĨA : 
+
+Thread Pool 
+là một tập hợp các thread được tạo sẵn và tái sử dụng. 
+Thay vì tạo thread mới cho mỗi task rồi hủy đi, 
+thread pool giữ các thread đó sẵn sàng nhận task tiếp theo — giúp tiết kiệm 
+tài nguyên và tránh overhead khi tạo/hủy thread liên tục.
+
+
+
+@Async 
+là annotation của Spring cho phép một method chạy trong thread 
+riêng biệt, không block thread hiện tại. Khi caller gọi method đó, 
+Spring sẽ đẩy task vào thread pool và trả về ngay lập tức mà không cần đợi 
+method chạy xong.
+
+
+Thread 
+là một luồng thực thi độc lập bên trong một process (tiến trình). 
+Một process có thể chạy nhiều thread cùng lúc, mỗi thread thực hiện một công 
+việc riêng biệt song song với nhau.
+
+
+
+nếu hàng đợi tối đa 50 task mà 100 task gửi tới thì sao ?
+
+Dựa vào CallerRunsPolicy đã config:
+50 task đầu → vào queue chờ
+Task thứ 51 → queue đầy
+→ CallerRunsPolicy: thread gọi @Async tự chạy task đó luôn
+→ Thread đó bị block đến khi xong
+→ App chậm lại nhưng không mất task

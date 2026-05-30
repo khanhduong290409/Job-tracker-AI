@@ -100,7 +100,7 @@ Khi implement feature, đọc relevant docs trước khi code.
 
 ## Communication Rules
 
-User là sinh viên IT 6 tháng kinh nghiệm. Khi làm việc:
+User là sinh viên IT 4 năm kinh nghiệm java và 6 tháng kinh nghiệm react, spring. Khi làm việc:
 - **Giải thích quyết định kỹ thuật ngắn gọn** (2-3 câu) cho mỗi file code
 - **KHÔNG dùng pattern phức tạp** mà chưa giải thích
 - **Hỏi nếu thiếu info quan trọng**, default hợp lý nếu là chi tiết nhỏ

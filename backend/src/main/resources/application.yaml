@@ -1,3 +1,146 @@
+# Base config - áp dụng cho tất cả profile. Override per-profile ở dưới (--- separator).
 spring:
   application:
-    name: backend
+    name: job-tracker-ai
+  # Tự load file .env ở root project (1 cấp trên backend/). optional: không fail nếu thiếu file
+  # (prod deploy inject env vars qua OS/secret manager, không có file .env).
+  config:
+    import: optional:file:../.env[.properties]
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:jobtracker}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate   # Flyway quản lý schema, JPA chỉ validate match
+    open-in-view: false    # tránh lazy loading trong view layer (anti-pattern)
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true   # cho phép apply lên DB đã có (vd: import dump)
+    baseline-version: 0
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+
+  servlet:
+    multipart:
+      max-file-size: 10MB       # max single file (attachments)
+      max-request-size: 12MB    # overhead cho multipart form
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false   # ISO-8601 strings, không epoch
+      indent-output: false
+
+server:
+  port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: never        # ẩn stack trace khỏi response, log thôi
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+# Custom application properties — bind qua @ConfigurationProperties
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiry-seconds: ${JWT_ACCESS_EXPIRY_SECONDS:900}
+    refresh-token-expiry-seconds: ${JWT_REFRESH_EXPIRY_SECONDS:604800}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:5173/auth/callback}
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
+    model: ${GEMINI_MODEL:gemini-1.5-flash}
+  encryption:
+    key: ${ENCRYPTION_KEY:}
+  storage:
+    local-path: ${APP_STORAGE_LOCAL_PATH:${user.home}/job-tracker-uploads}
+    cloudinary:
+      cloud-name: ${CLOUDINARY_CLOUD_NAME:}
+      api-key: ${CLOUDINARY_API_KEY:}
+      api-secret: ${CLOUDINARY_API_SECRET:}
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
+logging:
+  level:
+    com.jobtrackerai: INFO
+    org.springframework: WARN
+    org.hibernate.SQL: WARN
+
+---
+# DEV profile - verbose logging, dễ debug
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    com.jobtrackerai: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE   # show parameter binding
+
+---
+# TEST profile - chạy unit test (Mockito). Không cần DB thật.
+# @SpringBootTest sẽ dùng profile này; Mockito tests không load full context nên không quan tâm.
+spring:
+  config:
+    activate:
+      on-profile: test
+  flyway:
+    enabled: false             # test không apply migration
+  jpa:
+    hibernate:
+      ddl-auto: none
+
+---
+# PROD profile - tối ưu performance, security
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    show-sql: false
+
+server:
+  error:
+    include-message: never
+    include-binding-errors: never
+
+logging:
+  level:
+    com.jobtrackerai: INFO
+    org.springframework: WARN
+    root: WARN

@@ -73,21 +73,75 @@ Mọi feature (lớn hơn 1 file đơn giản), đưa ra PLAN ngắn (5-10 dòng
 5. Pages → user review
 6. Manual test guide
 
-### 4. Explain Decisions (NGẮN, 2-3 câu sau mỗi file)
+### 4. Explain Decisions (chi tiết — user là sinh viên 6 tháng, cần học pattern mới)
 
-Sau mỗi file, giải thích **ngắn gọn**:
-- File này làm gì?
-- Có quyết định kỹ thuật nào đáng chú ý không? Tại sao?
-- Edge case nào đã handle?
+Sau mỗi file, giải thích theo **4 phần cố định** (dùng heading/bullet, đọc lướt được):
 
-KHÔNG dump 1 page lý thuyết. Ngắn gọn, đủ ý.
+**1. File này làm gì** — 1-2 câu tóm tắt vai trò.
 
-Example:
-> "ApplicationService.create() này:
-> - Validate CV version thuộc về user trước khi save (security)
-> - Status mặc định là APPLIED khi tạo
-> - Mapping inline với `toResponse()` private method
-> - Không gọi AI ngay, để frontend trigger separately để keep response time nhanh"
+**2. Đi qua từng pattern/concept lạ trong file**
+Mỗi pattern xuất hiện lần đầu (interceptor, hydrate, queue, Zod schema, generic `<T>`, …) phải giải thích:
+- **Tên + định nghĩa plain** — 1-2 câu, ngôn ngữ đời thường
+- **Hoạt động khi nào / flow** — vd "interceptor chạy trước mỗi request"
+- **Code snippet ngắn** (≤10 dòng) trích từ file nếu cần làm rõ
+- **Liên hệ kiến thức cũ** (nếu có) — vd "giống `@RequestMapping` ở Spring", "giống middleware ở Express"
+- Pattern đã giải thích ở file trước → chỉ NHẮC TÊN, không lặp lại định nghĩa
+
+**3. Quyết định kỹ thuật + tại sao**
+Mỗi quyết định không-obvious giải thích trade-off:
+- Vd: "vì sao localStorage thay vì cookie", "vì sao queue thay vì refresh nhiều lần", "vì sao fail-fast thay vì return null"
+- Mục đích: user hiểu **vì sao project pro làm vậy**, không chỉ "làm vậy đi"
+
+**4. Edge case**
+- Đã handle: list ngắn
+- Chưa handle / để Phase sau: list ngắn + lý do defer
+
+**Không giới hạn dòng**, nhưng phải có heading/bullet — KHÔNG dump 1 đoạn văn dài liền.
+
+**Vẫn cấm:**
+- Code snippet > 10 dòng (cần dài hơn → giải thích bằng lời)
+- So sánh nhiều cách / "alternative approaches" khi user không hỏi
+- "Extra tips" / digress sang topic không liên quan file
+- Lặp lại định nghĩa pattern đã giải thích ở file trước
+
+Example (file có interceptor lần đầu):
+
+> ## Tóm tắt
+>
+> ### 1. File này làm gì
+> Tạo axios instance dùng chung. Tự attach JWT vào mọi request, xử lý 401 → refresh token → retry.
+>
+> ### 2. Pattern/concept lạ
+>
+> **Interceptor** — hàm "móc" vào pipeline request/response của axios.
+> - Request interceptor: chạy TRƯỚC khi request bay đi → chỗ tốt để thêm header (vd token).
+> - Response interceptor: chạy SAU khi nhận response → chỗ tốt để bắt lỗi global (vd 401).
+> - Liên hệ: giống `Filter` / `Interceptor` ở Spring anh đã biết — chặn request giữa đường để xử lý chung.
+>
+> ```ts
+> api.interceptors.request.use((config) => {
+>   config.headers.set('Authorization', `Bearer ${token}`);
+>   return config;
+> });
+> ```
+>
+> **Queue cho concurrent 401** — khi 5 request fail cùng lúc, không muốn gọi `/refresh` 5 lần. Cách làm:
+> - Flag `isRefreshing` đánh dấu "đang có 1 cái refresh".
+> - Cái nào tới sau → push promise vào `pendingQueue`, đợi → khi refresh xong, flush queue + retry tất cả với token mới.
+>
+> ### 3. Quyết định kỹ thuật
+>
+> **localStorage thay vì cookie httpOnly**
+> - Cookie httpOnly an toàn hơn (JS không đọc được → chống XSS), nhưng backend phải set cookie + handle CSRF.
+> - localStorage đơn giản hơn cho intern project, chấp nhận XSS risk nhẹ (mitigate bằng CSP + sanitize input ở Phase sau).
+>
+> **Gọi `axios.post` "naked" trong `refreshAccessToken`** thay vì qua instance `api`
+> - Nếu gọi qua `api`, response interceptor sẽ bắt 401 → lại gọi refresh → vòng lặp vô hạn.
+> - Dùng axios gốc → bypass interceptor → an toàn.
+>
+> ### 4. Edge case
+> - Đã handle: concurrent 401, redirect loop (`pathname !== '/login'`), refresh response thiếu field.
+> - Chưa handle: token sắp expire → proactive refresh (defer Phase sau, V1 lazy retry là đủ).
 
 ### 5. Manual Test Guide
 
@@ -162,6 +216,29 @@ Các phần khác: chỉ manual test, KHÔNG viết Mockito test.
 - List what's done, what's next
 - Highlight thing cần user attention
 - Bullet points > paragraphs
+
+### Khi giải thích concept/code
+
+User là sinh viên 6 tháng — quen Spring + React căn bản (CRUD, JPA, useState, API call), CHƯA quen pattern security/error handling/infra của project pro. Mục tiêu giải thích: học được, không chỉ "biết để tiếp tục".
+
+**Concept đơn giản** (vd "cn() là helper ghép className"):
+- Cấu trúc 3 phần ngắn: (1) Là gì, (2) Tại sao cần, (3) Không có thì sao
+- ~15 dòng đủ
+
+**Concept phức tạp** (vd "JWT refresh flow", "interceptor queue", "Spring profile", "Flyway baseline"):
+- Không giới hạn dòng, nhưng PHẢI chia phần bằng heading rõ ràng
+- Cấu trúc đề xuất:
+  - `### Là gì` — định nghĩa plain, 2-3 câu
+  - `### Cách hoạt động` — flow / sequence (dùng số 1→2→3 hoặc diagram text nếu giúp)
+  - `### Tại sao project pro làm vậy` — trade-off so với cách naive (vd "vì sao queue thay vì để 5 request cùng refresh")
+  - `### Liên hệ kiến thức cũ` (nếu có) — vd "giống `@Transactional` ở Spring", "giống middleware Express"
+- Code snippet ngắn (≤10 dòng) nếu giúp hình dung — KHÔNG paste cả file lại
+
+**Vẫn cấm:**
+- Paragraph dài không xuống dòng (đọc lướt không được)
+- Bảng so sánh / "alternative approaches" / "các framework khác làm thế nào" khi user không hỏi
+- Lặp lại định nghĩa pattern đã giải thích ở conversation trước trong cùng session
+- Lý thuyết hàn lâm không gắn với code đang làm (vd lecture về "lịch sử OAuth")
 
 ### Khi uncertain
 - SAY SO explicitly: "Em không 100% sure về X, đây là best guess"

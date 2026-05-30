@@ -1,0 +1,48 @@
+# Docker Compose cho dev environment.
+# Chạy: docker compose up -d
+# Stop: docker compose down
+# Xóa data: docker compose down -v
+# .\mvnw.cmd spring-boot:run
+#
+# Phase 0: chỉ chạy Postgres + Redis. Backend/Frontend chạy trực tiếp trên máy
+# bằng ./mvnw spring-boot:run và npm run dev (debug dễ hơn, reload nhanh hơn).
+# Phase 7 (deploy) sẽ thêm services backend + frontend.
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: jobtracker-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-jobtracker}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-jobtracker}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: jobtracker-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+
+# cú pháp :- Cú pháp này nghĩa là: 
+# Hệ thống sẽ tìm xem trong máy có biến môi trường DB_NAME nào không. Nếu CÓ, nó sẽ lấy giá trị đó; nếu KHÔNG có, nó sẽ tự động lấy giá trị mặc định là jobtracker.

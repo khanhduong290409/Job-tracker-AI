@@ -21,6 +21,12 @@ backend/target/
 backend/.mvn/wrapper/maven-wrapper.jar
 frontend/dist/
 frontend/build/
+*.jar
+!**/.mvn/wrapper/maven-wrapper.jar
+
+# Local file storage (Phase 2 file upload)
+uploads/
+backend/uploads/
 
 # Dependencies
 frontend/node_modules/
@@ -32,3 +38,6 @@ logs/
 # Misc
 .flattened-pom.xml
 HELP.md
+
+# Học liệu cá nhân (deep-dive explanation per phase), không cần push
+learning/

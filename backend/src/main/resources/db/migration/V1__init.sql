@@ -1,0 +1,19 @@
+-- =============================================================================
+-- Flyway baseline migration cho Job-tracker-AI
+-- =============================================================================
+-- File này CỐ Ý để trống (chỉ có comment).
+--
+-- Lý do tồn tại:
+--   - Flyway yêu cầu có ít nhất 1 migration file để track versioning
+--   - Khi DB rỗng + baseline-on-migrate=true (xem application.yaml),
+--     Flyway sẽ create schema_history table, baseline ở version 0, sau đó
+--     apply V1 (file này) thành công.
+--   - Tables thật sự sẽ bắt đầu từ V2 (Phase 1: users, refresh_tokens).
+--
+-- Naming convention các migration tiếp theo:
+--   V<n>__<snake_case_description>.sql
+--   Vd: V2__create_users_table.sql, V3__create_refresh_tokens_table.sql
+--
+-- QUY TẮC: KHÔNG BAO GIỜ sửa file migration đã merge. Tạo migration mới
+-- để alter (vd: V10__add_column_x_to_users.sql).
+-- =============================================================================
