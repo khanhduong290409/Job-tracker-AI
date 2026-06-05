@@ -1,19 +1,10 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { PublicLayout } from './components/layout/PublicLayout';
 import { ProtectedLayout } from './components/layout/ProtectedLayout';
+import { LoginPage } from './features/auth/pages/LoginPage';
+import { CallbackPage } from './features/auth/pages/CallbackPage';
 
-/**
- * Route tree app. Placeholder inline cho Phase 0 — Phase 1/3 sẽ thay bằng page thật.
- */
-
-function LoginPlaceholder() {
-  return (
-    <div className="rounded-lg bg-white p-8 shadow">
-      <h1 className="text-xl font-semibold">Login (Phase 1)</h1>
-      <p className="mt-2 text-sm text-gray-600">Google OAuth sẽ implement ở Phase 1.</p>
-    </div>
-  );
-}
+// Phase 3/4/... sẽ replace các placeholder bên dưới bằng page thật
 
 function DashboardPlaceholder() {
   return (
@@ -39,7 +30,8 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route element={<PublicLayout />}>
-        <Route path="/login" element={<LoginPlaceholder />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/callback" element={<CallbackPage />} />
       </Route>
 
       <Route element={<ProtectedLayout />}>

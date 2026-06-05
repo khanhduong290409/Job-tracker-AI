@@ -653,3 +653,45 @@ export interface ApplicationFilter {
 - ❌ Class components (use function)
 - ❌ Inline styles (use Tailwind)
 - ❌ `console.log` in committed code
+
+---
+
+## Nguyên tắc viết logic ĐƠN GIẢN (ưu tiên dễ hiểu hơn "thông minh")
+
+> Áp dụng cho MỌI đoạn code (Java & TypeScript). Mục tiêu: người đọc hiểu mà không cần vẽ sơ đồ. Khi có 2 cách cho cùng một kết quả, **chọn cách ít khái niệm hơn**, kể cả khi dài hơn vài dòng. Code được đọc nhiều lần hơn được viết.
+
+### Quy tắc chung
+
+1. **Ít trạng thái (state) nhất có thể.**
+   Mỗi biến, mỗi cờ boolean là một thứ phải tự đồng bộ → nguồn bug. Trước khi thêm biến, hỏi: có suy ra được từ thứ đã có không? Thường 1 biến gộp thay được cho nhiều cờ rời rạc.
+
+2. **Một đường đi (happy path) thẳng và phẳng.**
+   Loại các case ngoại lệ bằng *early-return* ở đầu hàm, phần chính không lồng sâu. Tránh `if/else` lồng quá 2 tầng.
+
+3. **Gộp các nhánh làm cùng một việc.**
+   Nếu nhiều trường hợp cuối cùng dẫn tới cùng hành động, cho chúng đi chung một đoạn code, đừng nhân bản logic ra mỗi nhánh.
+
+4. **Đặt tên theo *ý định*, không theo *cơ chế*.**
+   Tên nói "làm gì / để làm gì" (`getCurrentUser`, `validateTransition`) dễ hiểu hơn tên mô tả thuật toán nội bộ.
+
+5. **Dùng đúng công cụ sẵn có của ngôn ngữ/thư viện, không tự dựng lại.**
+   Có abstraction cấp cao rồi thì dùng (vd: `async/await` thay vì tự ghép callback; method có sẵn của lib thay vì tự viết). Chỉ "xuống tay thủ công" khi thật sự cần.
+
+6. **Một hàm = một nhiệm vụ.**
+   Hàm dài/khó đặt tên gọn = dấu hiệu nên tách. Mỗi hàm nên giải thích được trong một câu.
+
+7. **Chấp nhận "thừa thao tác vô hại" để đổi lấy đơn giản.**
+   Nếu một cách viết hơi lặp/thừa nhưng không sai kết quả và dễ hiểu hơn nhiều, ưu tiên nó hơn cơ chế tối ưu nhưng rối.
+
+8. **Tránh tối ưu sớm và "phòng xa" không cần thiết.**
+   Không thêm tham số, lớp trừu tượng, config cho tình huống chưa xảy ra. Viết cho yêu cầu hiện tại.
+
+9. **Comment giải thích "tại sao", không lặp lại "cái gì".**
+   Code đã nói nó làm gì; comment dành cho lý do/quyết định/cạm bẫy mà code không tự nói được.
+
+### Checklist trước khi commit một đoạn logic
+- [ ] Có thể bỏ bớt biến trạng thái nào không?
+- [ ] Có nhánh `if/else` nào đang làm cùng việc → gộp được không?
+- [ ] Có chỗ nào tự dựng lại thứ ngôn ngữ/thư viện đã có sẵn không?
+- [ ] Tên hàm/biến nói lên *ý định* chưa?
+- [ ] Người mới đọc có hiểu trong 30 giây không?

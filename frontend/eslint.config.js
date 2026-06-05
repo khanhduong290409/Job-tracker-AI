@@ -19,4 +19,6 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  // shadcn/ui components — tắt react-refresh rule vì chúng export cả component lẫn variants
+  { files: ['src/components/ui/**'], rules: { 'react-refresh/only-export-components': 'off' } },
 ])

@@ -1,5 +1,6 @@
 # Docker Compose cho dev environment.
-# Chạy: docker compose up -d
+# docker compose up -d
+# docker compose stop
 # Stop: docker compose down
 # Xóa data: docker compose down -v
 # .\mvnw.cmd spring-boot:run
@@ -17,7 +18,7 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      - "5433:5432"  # 5433 trên host → tránh conflict với native Postgres v18 (giữ 5432)
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

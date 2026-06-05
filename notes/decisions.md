@@ -6,6 +6,34 @@ Format: ngày, decision, lý do, trade-off (nếu có).
 
 ---
 
+## 2026-06-06 — Dev environment
+
+### D-011: Docker Postgres dùng port 5433 thay vì 5432
+- **Quyết định:** `docker-compose.yml` map `5433:5432` (host:container). Spring Boot kết nối `localhost:5433` qua `DB_PORT=5433` trong `.env`.
+- **Lý do:** Native PostgreSQL v18 cài sẵn trên máy dev (dùng cho project khác) giữ port 5432. Đổi Docker sang 5433 để hai cái không conflict — không cần stop native Postgres trước khi chạy project này nữa.
+- **Ảnh hưởng:** Chỉ áp dụng cho dev local. Prod (Phase 7) dùng Docker Compose network nội bộ, không expose port ra host.
+
+---
+
+## 2026-05-31 — Phase 1 setup decisions
+
+### D-008: Defer Rate Limiting (Bucket4j) sang Phase 7
+- **Quyết định:** KHÔNG implement rate limiting cho `/auth/**` ở Phase 1. Defer sang Phase 7 (Polish).
+- **Lý do:** Thêm Bucket4j dependency + filter logic làm phức tạp Phase 1. Project demo intern, risk thấp.
+- **Khi implement:** Thêm `bucket4j-redis` dependency, tạo `RateLimitingFilter extends OncePerRequestFilter`, config limits theo `docs/05-security.md` (10/min per IP cho `/auth/**`).
+
+### D-009: Swagger UI enable trong dev
+- **Quyết định:** Thêm `springdoc-openapi-starter-webmvc-ui 2.5.0`. Swagger luôn bật ở `dev`, sẽ disable ở `prod` (Phase 7 deploy checklist).
+- **Lý do:** Tiện test API trong quá trình dev mà không cần Postman.
+
+### D-010: shadcn/ui — Manual Install thay vì CLI
+- **Quyết định:** KHÔNG dùng `npx shadcn@latest init`. Cài thủ công 4 package + copy component code.
+- **Lý do:** shadcn CLI v4 có bug workspace detection trên Windows (lỗi "Could not load workspace config"). Nhiều version đều fail.
+- **Cách thêm component mới:** Vào https://ui.shadcn.com/docs/components/[tên], copy code trong tab "Manual" → đặt vào `src/components/ui/[tên].tsx`. ESLint rule `react-refresh/only-export-components` đã tắt cho `src/components/ui/**`.
+- **Packages cần thiết (đã install):** `clsx`, `tailwind-merge`, `class-variance-authority`, `@radix-ui/react-slot`
+
+---
+
 ## 2026-05-26 — Phase 0 setup decisions
 
 ### D-001: Single-module Maven (không multi-module)

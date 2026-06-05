@@ -39,31 +39,14 @@ api.interceptors.request.use((config) => {
 });
 
 // ---------- Response interceptor: 401 → refresh → retry ----------
-/*
-Array<{...}> — mảng các object
-resolve: (token: string) => void — function nhận token, không trả về gì
-reject: (err: unknown) => void — function nhận error, không trả về gì
-= [] — khởi tạo rỗng
-
-Mảng này lưu các request đang chờ token mới.
-p/s: khởi tạo mảng rỗng, mỗi phần tử trong mảng là object chứa 2 function.
- */
-//InternalAxiosReqeustConfig là 1 type có sẵn của axios, cú pháp & { _retry?: boolean }; để thêm biến _retry?: boolean  vào biến axios hợp thành 1 type 
+//InternalAxiosReqeustConfig là 1 type có sẵn của axios, cú pháp & { _retry?: boolean }; để thêm biến _retry?: boolean  vào biến axios hợp thành 1 type
 type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
-let isRefreshing = false;
-let pendingQueue: Array<{
-  resolve: (token: string) => void;
-  reject: (err: unknown) => void;
-}> = [];
-
-function flushQueue(err: unknown, token: string | null): void {
-  pendingQueue.forEach(({ resolve, reject }) => {
-    if (err || !token) reject(err);
-    else resolve(token);
-  });
-  pendingQueue = [];
-}
+/*
+ * Promise của lần refresh đang chạy. Nhiều request cùng bị 401 sẽ CÙNG await
+ * biến này → server chỉ bị gọi /auth/refresh đúng 1 lần. null = không có ai đang refresh.
+ */
+let refreshPromise: Promise<string> | null = null;
 
 type RefreshResponseData = {
   accessToken: string;
@@ -75,6 +58,7 @@ async function refreshAccessToken(): Promise<string> {
   if (!refreshToken) throw new Error('No refresh token available');
 
   // Gọi bằng `axios` gốc (không qua instance `api`) để tránh trigger interceptor → tránh loop.
+  //syntax: axios.post< Type >( url, body )
   const res = await axios.post<ApiResponse<RefreshResponseData>>(
     `${env.VITE_API_BASE_URL}/auth/refresh`,
     { refreshToken },
@@ -87,52 +71,82 @@ async function refreshAccessToken(): Promise<string> {
   return data.accessToken;
 }
 
+/*
+ * Đảm bảo chỉ refresh đúng 1 lần dù bị gọi đồng thời nhiều lần:
+ * - Lần gọi đầu: refreshPromise đang null → khởi động refresh, cất Promise lại.
+ * - Các lần gọi sau (trong lúc đang refresh): thấy refreshPromise đã có → dùng chung luôn.
+ * - .finally: refresh xong (thành/bại) thì xóa biến, cho lần 401 tiếp theo refresh lại được.
+ */
+function getNewToken(): Promise<string> {
+  if (refreshPromise) return refreshPromise;
+  refreshPromise = refreshAccessToken().finally(() => {
+    refreshPromise = null;
+  });
+  return refreshPromise;
+  //đoạn finally nó sẽ chạy cuối cùng, sau khi promise kết thúc
+  //tức là refreshPromise = null sẽ chạy sau cả return refreshPromise
+  //nên ở đây nó chỉ có chức năng dọn refreshPromise
+
+/*
+    Dòng thời gian thực tế
+
+    t = 0ms      A vào getNewToken() → refreshPromise = Promise → return
+    t = 0.001ms  B vào getNewToken() → thấy refreshPromise → return Promise đó
+    t = 0.001ms  C vào getNewToken() → thấy refreshPromise → return Promise đó
+                ...đợi server...
+    t = 200ms    Server trả về → .finally chạy → refreshPromise = null
+*/
+}
+
 function isAuthEndpoint(url: string | undefined): boolean {
   if (!url) return false;
   return url.includes('/auth/refresh') || url.includes('/auth/google');
 }
+//syntax: 
+/*
+  api.interceptors.response.use(
+  successCallback,  // chạy khi response 2xx
+  errorCallback     // chạy khi response 4xx/5xx
+)
+ */
 
 api.interceptors.response.use(
-  (res) => res,
-  async (error: AxiosError) => {
-    const original = error.config as RetryableConfig | undefined;
+  (res) => res, // callback 1: response thành công → pass through
+  async (error: AxiosError) => {// callback 2: response lỗi → xử lý ở đây
+    const original = error.config as RetryableConfig | undefined;//error.config là config của request đã gây ra lỗi — chứa url, headers, body... để sau này có thể retry lại đúng request đó.
     const status = error.response?.status;
 
     // Reject thẳng nếu: không phải 401, không có config, đã retry rồi, hoặc đang gọi auth endpoint
     if (
-      status !== 401 ||
-      !original ||
-      original._retry ||
-      isAuthEndpoint(original.url)
+      status !== 401 ||   // không phải lỗi token
+      !original ||        // không có config (hiếm gặp)
+      original._retry ||  // đã retry rồi, tránh vòng lặp vô hạn
+      isAuthEndpoint(original.url)  // đang gọi /auth/refresh hoặc /auth/google
     ) {
-      return Promise.reject(error);
+      return Promise.reject(error);  // ném lỗi ra ngoài, không xử lý
     }
 
-    // Đang có request khác refresh → đợi token mới rồi retry
-    if (isRefreshing) {
-      return new Promise((resolve, reject) => {
-        pendingQueue.push({
-          resolve: (token) => {
-            original._retry = true;
-            original.headers.set('Authorization', `Bearer ${token}`);
-            resolve(api(original));
-          },
-          reject,
-        });
-      });
-    }
 
     original._retry = true;
-    isRefreshing = true;
 
+      // A, B, C cùng dừng ở đây chờ CHUNG 1 Promise refresh (getNewToken lo việc gộp).
+/*
+    Dòng thời gian thực tế
+
+
+    t = 0ms      A vào getNewToken() → refreshPromise = Promise → return
+    t = 0.001ms  B vào getNewToken() → thấy refreshPromise → return Promise đó
+    t = 0.001ms  C vào getNewToken() → thấy refreshPromise → return Promise đó
+                ...đợi server...
+    t = 200ms    Server trả về → .finally chạy → refreshPromise = null
+*/
     try {
-      const newToken = await refreshAccessToken();
-      flushQueue(null, newToken);
+
+      const newToken = await getNewToken();
       original.headers.set('Authorization', `Bearer ${newToken}`);
-      return api(original);
+      return api(original); // có token mới → tự gửi lại request của mình
     } catch (refreshErr) {
-      flushQueue(refreshErr, null);
-      tokenStorage.clear();
+      tokenStorage.clear();//Tại sao lại clear? -> bên dưới có giải thích
       // Hard redirect — reset clean state. Bỏ qua nếu đang ở /login để tránh reload vô hạn.
       if (
         typeof window !== 'undefined' &&
@@ -141,12 +155,35 @@ api.interceptors.response.use(
         window.location.href = '/login';
       }
       return Promise.reject(refreshErr);
-    } finally {
-      isRefreshing = false;
     }
   },
 );
+/**
+ * // Ví dụ error.config:
+{
+  url: '/profile',
+  method: 'get',
+  headers: { Authorization: 'Bearer eyJ...expired' },
+  _retry: undefined   // ← field ta tự thêm vào qua RetryableConfig
+}
 
+status = error.response?.status
+// → 401 (token hết hạn)
+// → 403 (không có quyền)
+// → 500 (server lỗi)
+
+
+
+
+Tại sao cần original._retry?
+Lần 1: GET /profile → 401 → _retry = undefined → tiến hành refresh
+Lần 2: GET /profile → 401 → _retry = true      → reject thẳng, không refresh nữa
+Nếu không có flag này, refresh thành công nhưng server vẫn trả 401 → refresh lại → vòng lặp vô hạn.
+Tại sao cần isAuthEndpoint?
+POST /auth/refresh → 401
+→ không có flag này → interceptor cố refresh token của... refresh endpoint
+→ vòng lặp vô hạn
+ */
 
 
 
@@ -167,4 +204,16 @@ const { data } = await apiClient.get(url)
 // ✅ Tự throw error khi 4xx/5xx
 // ✅ Interceptors (gắn token, handle 401 refresh tự động)
 // ✅ Timeout config đơn giản
+
+
+Tại sao lại clear?
+Khi rơi vào catch ở đây, có nghĩa:
+
+Access token đã hết hạn (mới bị 401).
+Refresh token cũng không dùng được (refresh mới fail xong).
+Cả hai token đều vô dụng. Giữ lại trong localStorage chỉ gây hại: lần sau mở trang, code đọc token cũ lên, bắn request, bị 401, lại refresh, lại fail → lặp vô tận.
+
+Xóa đi là để dọn sạch, trở về trạng thái "chưa đăng nhập".
+
+
  */

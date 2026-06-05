@@ -61,6 +61,24 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-06-06 — Phase 1 HOÀN THÀNH (25/25 file)
+
+**Done (backend 18 file + frontend 7 file):**
+- Backend: User entity, RefreshToken entity, JwtService, GoogleOAuthService, AuthService (+ 8 Mockito tests), JwtAuthFilter, SecurityConfig, AuthController
+- Frontend: auth types, auth-api, auth-store (UserProfile), useAuth hooks, LoginPage, CallbackPage, routes update, PublicLayout auth redirect
+- `.env` root: Google OAuth credentials + JWT secret điền đầy đủ
+
+**Manual test PASS:**
+- Google OAuth full flow: `/login` → Google consent → `/auth/callback` → spinner → `/dashboard` ✅
+- Backend health: `{"status":"UP"}` ✅
+- localStorage có `jt_access_token`, `jt_refresh_token`, `jt_user` sau login ✅
+
+**Blocker tái hiện + fix:** Postgres native v18 tự start lại chiếm port 5432 → stop qua services.msc.
+
+**Next:** Phase 2 — CV Management. Đọc `docs/02-database-schema.md` + `docs/08-user-stories.md` epic CV trước khi plan.
+
+---
+
 ## 2026-05-27 — Phase 0: tiếp tục, tạm dừng ở file 4/23
 
 **Done thêm:**

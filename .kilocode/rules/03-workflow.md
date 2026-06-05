@@ -221,6 +221,12 @@ Các phần khác: chỉ manual test, KHÔNG viết Mockito test.
 
 User là sinh viên 6 tháng — quen Spring + React căn bản (CRUD, JPA, useState, API call), CHƯA quen pattern security/error handling/infra của project pro. Mục tiêu giải thích: học được, không chỉ "biết để tiếp tục".
 
+**Nguyên tắc giải thích (bắt buộc):**
+- **Đơn giản, dễ hiểu** — ngôn ngữ đời thường, tránh thuật ngữ hàn lâm khi không cần thiết
+- **Chi tiết từng phần** — mỗi phần có heading rõ, giải thích đủ để hiểu, không bỏ sót
+- **Không dài dòng** — mỗi ý 1-2 câu là đủ, không giải thích thứ đã rõ ràng, không lặp lại
+- **Luôn thêm ví dụ cách dùng** — sau khi giải thích xong, thêm snippet ngắn cho thấy nó được gọi/dùng như thế nào trong thực tế
+
 **Concept đơn giản** (vd "cn() là helper ghép className"):
 - Cấu trúc 3 phần ngắn: (1) Là gì, (2) Tại sao cần, (3) Không có thì sao
 - ~15 dòng đủ

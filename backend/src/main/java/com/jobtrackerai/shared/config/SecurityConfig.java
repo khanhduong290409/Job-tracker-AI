@@ -1,5 +1,6 @@
 package com.jobtrackerai.shared.config;
 
+import com.jobtrackerai.auth.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,26 +9,16 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
-/**
- * Spring Security skeleton cho Phase 0.
- *   - Stateless (JWT thay vì session)
- *   - Apply CORS từ CorsConfig
- *   - Disable CSRF (API stateless không cần)
- *   - Disable HTTP Basic + Form login (default Spring Security)
- *   - Permit public endpoints (actuator, swagger, /auth/**)
- *   - Tất cả endpoint khác require authentication
- *
- * Phase 1 sẽ thêm: JwtAuthFilter trước UsernamePasswordAuthenticationFilter,
- * AuthenticationEntryPoint trả 401 JSON, security headers (CSP, HSTS).
- */
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final CorsConfigurationSource corsConfigurationSource;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -45,9 +36,10 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
-                        .requestMatchers("/api/v1/auth/**").permitAll()   // Phase 1 endpoints
+                        .requestMatchers("/api/v1/auth/**").permitAll()
                         .anyRequest().authenticated()
-                );
+                )
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }

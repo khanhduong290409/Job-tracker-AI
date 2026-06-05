@@ -5,7 +5,7 @@ spring:
   # Tự load file .env ở root project (1 cấp trên backend/). optional: không fail nếu thiếu file
   # (prod deploy inject env vars qua OS/secret manager, không có file .env).
   config:
-    import: optional:file:../.env[.properties]
+    import: optional:file:../.env[.properties] #tự đọc 
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 

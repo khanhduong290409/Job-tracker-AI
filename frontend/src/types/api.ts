@@ -29,7 +29,7 @@ export interface ApiError {
 
 export interface ApiResponse<T> {
   success: boolean;
-  data?: T;
+  data?: T;//nghĩa là `data` có thể vắng (TS type là `T | undefined`).
   message?: string;
   error?: ApiError;
 }

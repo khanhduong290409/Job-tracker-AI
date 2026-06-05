@@ -1,13 +1,12 @@
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuthStore } from '@/features/auth/store/auth-store';
 
-/**
- * Layout cho route công khai (vd `/login`). Skeleton Phase 0 — render `<Outlet />` trần.
- * Phase 1 có thể thêm logo + footer minimal nếu cần.
- */
 export function PublicLayout() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <Outlet />
-    </div>
-  );
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Outlet />;
 }
