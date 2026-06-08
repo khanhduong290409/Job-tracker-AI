@@ -45,13 +45,44 @@ Mọi feature (lớn hơn 1 file đơn giản), đưa ra PLAN ngắn (5-10 dòng
 - (nếu không có, ghi "Không có")
 ```
 
+### 2.5. Self-Review Plan (bắt buộc trước khi đưa plan cho user)
+
+Sau khi draft plan xong, **KHÔNG đưa ngay cho user** — tự review lại theo checklist:
+
+**Checklist:**
+- [ ] Có file nào bị bỏ sót không? (test, config, properties class, ...)
+- [ ] Thứ tự implementation có đúng dependency không? (entity trước repository, service trước controller)
+- [ ] Test: có critical component nào (ownership, state machine, AI, auth) thiếu Mockito test không?
+- [ ] DTOs: đặt tên đúng convention chưa? Có DTO nào thừa/thiếu không?
+- [ ] Dependency mới: đã hỏi user approve chưa?
+- [ ] Scope: có gì nên defer sang phase sau không?
+- [ ] Open questions: còn câu hỏi nào chưa rõ cần hỏi user không?
+- [ ] Plan có khớp với rules (`01-coding-style`, `02-architecture`, `04-testing`) không?
+
+**Nếu phát hiện vấn đề** → điều chỉnh plan trước khi show user. Ghi rõ "đã điều chỉnh" và lý do ngắn gọn ở cuối plan.
+
 **ĐỢI user confirm** rồi mới code.
 
 ### 3. Code Incrementally
 
 - Tạo/sửa **1 file tại 1 thời điểm** (hoặc tối đa 2 file liên quan chặt: entity + repository)
-- Sau mỗi file, DỪNG và inform user để review
+- Sau mỗi file, **tự review trước** (xem 3.5), rồi mới DỪNG và inform user để review
 - KHÔNG code 5-10 file một lúc
+
+### 3.5. Self-Review After Each File (bắt buộc trước khi đưa file cho user)
+
+Sau khi viết xong 1 file, **KHÔNG show ngay** — tự review theo checklist:
+
+**Checklist:**
+- [ ] Logic có đúng không? Đọc lại từng dòng code critical (ownership check, state check, null check)
+- [ ] Có follow đúng coding style không? (naming, layer rules, no business logic in controller, ...)
+- [ ] Có nhất quán với các file đã viết trước không? (cùng pattern timestamp, cùng cách map DTO, ...)
+- [ ] Import có đủ không? Có import thừa không?
+- [ ] Có tự bịa method/API không tồn tại không?
+- [ ] Annotation đủ chưa? (vd: `@Transactional` trên write method, `@Valid` trên request body, ...)
+- [ ] Edge case trong file này đã handle chưa?
+
+**Nếu phát hiện vấn đề** → fix trước khi show user, ghi chú ngắn trong phần giải thích "đã điều chỉnh X vì Y".
 
 **Sequence chuẩn cho 1 feature backend:**
 

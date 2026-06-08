@@ -6,6 +6,68 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-06-09 — Phase 2: CV Management HOÀN THÀNH (13/13 file)
+
+**Done (backend 8 file):**
+- File 1: `V4__create_cv_versions_table.sql` ✅
+- File 2: `cv/entity/CvParseStatus.java` + `cv/entity/CvVersion.java` ✅
+- File 3: `cv/repository/CvVersionRepository.java` ✅
+- File 4: Storage layer → Cloudinary (D-012) ✅
+- File 5: `cv/dto/CvVersionResponse.java` ✅
+- File 6: `cv/service/CvService.java` (self-injection `@Lazy` + `@Async`, PDFBox 3.x) ✅
+- File 7: `cv/controller/CvController.java` ✅
+- File 8: `cv/service/CvServiceOwnershipTest.java` — 9 Mockito tests PASSED ✅
+
+**Done (frontend 5 file):**
+- File 9: `features/cv/types.ts` ✅
+- File 10: `features/cv/api/cv-api.ts` (FormData upload) ✅
+- File 11: `features/cv/api/queries.ts` (polling 3s khi PROCESSING) ✅
+- File 12: `CvParseStatusBadge.tsx` + `CvCard.tsx` + `UploadCvForm.tsx` + `CvListPage.tsx` ✅
+- File 13: `routes.tsx` update (`/cv` trong ProtectedLayout) ✅
+
+**Hotfix:** `QueryClientProvider` bị thiếu trong `App.tsx` → thêm vào sau khi thấy lỗi console.
+
+**Manual test PASS:**
+- Upload CV PDF → card xuất hiện, status "Đang xử lý..." → tự chuyển "Hoàn thành" (polling) ✅
+- Đặt mặc định → badge "Mặc định" chuyển đúng ✅
+- Xóa CV → card biến mất ✅
+- Chưa login → `/cv` redirect về `/login` ✅
+
+**Next:** Phase 3 — Application CRUD + State Machine.
+
+---
+
+## 2026-06-07 — Phase 2: CV Management (đang làm, 5/13 file backend xong)
+
+**Done (backend):**
+- File 1: `V4__create_cv_versions_table.sql` ✅
+- File 2: `cv/entity/CvParseStatus.java` + `cv/entity/CvVersion.java` ✅
+- File 3: `cv/repository/CvVersionRepository.java` ✅
+- File 4: Storage layer refactor → Cloudinary (D-012):
+  - Xóa `LocalFileStorageService`
+  - `shared/storage/StorageProperties.java` — nested CloudinaryProperties
+  - `shared/storage/FileStorageService.java` — interface
+  - `shared/config/CloudinaryConfig.java` — bean Cloudinary
+  - `shared/storage/CloudinaryFileStorageService.java` ✅
+  - `pom.xml` — thêm `cloudinary-http45:1.36.0` + `pdfbox:3.0.1` ✅
+- File 5: `cv/dto/CvVersionResponse.java` ✅
+
+**Next (session mới bắt đầu từ đây):**
+- File 6: `cv/service/CvService.java` ← TIẾP THEO
+- File 7: `cv/controller/CvController.java`
+- File 8: `cv/service/CvServiceOwnershipTest.java` (Mockito)
+- File 9-13: Frontend (types, api, queries+polling, components+page, routes)
+
+**Decisions session này:**
+- D-012: Cloudinary từ Phase 2, bỏ local storage — xem decisions.md
+- `SqlTypes.JSONB` không tồn tại trong Hibernate version này → dùng `SqlTypes.JSON`
+- Thêm bước 2.5 (self-review plan) và 3.5 (self-review after file) vào `03-workflow.md`
+- `fileUrl` có trong `CvVersionResponse` vì Cloudinary URL là URL thật
+
+**Cloudinary credentials:** đã điền đầy đủ trong `.env` (cloud name: dm1xwivqn)
+
+---
+
 ## 2026-05-26 — Phase 0: Setup hạ tầng (bắt đầu)
 
 **Done:**

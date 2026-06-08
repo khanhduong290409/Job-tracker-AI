@@ -3,6 +3,7 @@ import { PublicLayout } from './components/layout/PublicLayout';
 import { ProtectedLayout } from './components/layout/ProtectedLayout';
 import { LoginPage } from './features/auth/pages/LoginPage';
 import { CallbackPage } from './features/auth/pages/CallbackPage';
+import { CvListPage } from './features/cv/pages/CvListPage';
 
 // Phase 3/4/... sẽ replace các placeholder bên dưới bằng page thật
 
@@ -37,6 +38,7 @@ export function AppRoutes() {
       <Route element={<ProtectedLayout />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPlaceholder />} />
+        <Route path="/cv" element={<CvListPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPlaceholder />} />

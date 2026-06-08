@@ -6,6 +6,25 @@ Format: ngày, decision, lý do, trade-off (nếu có).
 
 ---
 
+## 2026-06-09 — Phase 2 hotfix
+
+### D-013: QueryClientProvider bắt buộc bọc toàn bộ app trong App.tsx
+- **Quyết định:** `QueryClient` instance khai báo ở module level (ngoài component), `QueryClientProvider` bọc `BrowserRouter` trong `App.tsx`.
+- **Lý do:** Bị thiếu khi setup Phase 0 skeleton — `@tanstack/react-query` chưa được dùng ở Phase 0 nên chưa thêm Provider. Phase 2 là lần đầu dùng → phát hiện lỗi "No QueryClient set".
+- **Lưu ý:** `QueryClient` khai báo ngoài component để tránh recreate mỗi re-render → cache bị xóa.
+
+---
+
+## 2026-06-07 — Phase 2 storage decision
+
+### D-012: Dùng Cloudinary từ Phase 2, bỏ LocalFileStorageService
+- **Quyết định:** Xóa `LocalFileStorageService`. Chỉ có `CloudinaryFileStorageService` (không cần `@Profile`). `fileUrl` trong DB luôn là Cloudinary `secure_url` (HTTPS URL thật).
+- **Lý do:** `LocalFileStorageService` lưu file local → `fileUrl` chỉ là filename thuần, frontend không dùng được để hiển thị PDF. Cloudinary free tier đủ dùng cho dev. Dev/prod nhất quán hoàn toàn.
+- **Ảnh hưởng:** Phase 7 bớt task "implement CloudinaryFileStorageService". `delete()` vẫn no-op (Phase 7 implement GDPR delete).
+- **Override:** D-003 (LocalFileStorageService cho dev) không còn hiệu lực.
+
+---
+
 ## 2026-06-06 — Dev environment
 
 ### D-011: Docker Postgres dùng port 5433 thay vì 5432

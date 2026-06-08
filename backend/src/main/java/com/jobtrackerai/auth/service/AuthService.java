@@ -166,7 +166,7 @@ Convert byte[] → chuỗi hex để lưu vào DB dạng text:
 HexFormat là utility của Java 17+ — thay cho cách cũ phải tự loop convert từng byte.
  
 //GIẢI THÍCH ĐOẠN TẠI SAO LẠI THU HỒI REFRESHTOKEN TRONG FUNCTION REFRESH
-// vậy là chỉ trong trường hợp user không sử dụng website trong vòng 7 ngày thì cái refresh token mới 
+// Chỉ trong trường hợp user không sử dụng website trong vòng 7 ngày thì cái refresh token mới 
 // thực sự hết hạn sử dụng 7 ngày thôi chứ nếu mà đang dùng thì nó sẽ được refresh theo access token
 
 
