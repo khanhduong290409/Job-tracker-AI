@@ -6,6 +6,75 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-06-15 — Phase 3 FRONTEND HOÀN THÀNH (6 file) → PHASE 3 ĐÓNG
+
+**Done (frontend Phase 3):**
+- File 10: `features/applications/types.ts` — mirror DTO; thêm enum `WorkType/EmploymentType/ApplicationSource` vào `types/common.ts`; `TimelineEventType` + `TIMELINE_EVENT_LABELS`.
+- File 11: `api/application-api.ts` — 7 endpoint; `paramsSerializer: { indexes: null }` để mảng `statuses` serialize lặp key (khớp `@ModelAttribute`).
+- File 12: `api/queries.ts` — TanStack hooks (queries + 5 mutation); `keepPreviousData` cho list.
+- File 13: `ApplicationStatusBadge` + `ApplicationCard`; tách `status-meta.ts` (config nhãn/màu + `ALLOWED_TRANSITIONS` mirror state machine).
+- File 14: `ApplicationListPage` (filter + search + phân trang) · `CreateApplicationPage` (React Hook Form + Zod — form đầu tiên dùng RHF) · `ApplicationDetailPage` (info + đổi status + ghi chú sự kiện + lịch sử + xóa).
+- File 15: `routes.tsx` — 3 route `/applications`, `/applications/new`, `/applications/:id`.
+
+**Verify:** tsc + eslint + `npm run build` đều PASS.
+
+**Tinh chỉnh UX trong lúc review:** đổi nhãn "Dòng thời gian" → "Ghi chú sự kiện"; thêm nhãn VN cho timeline event type; thêm `max={today}` ô Ngày nộp (chặn chọn tương lai, khớp `@PastOrPresent`); sửa typo class `max-w-3xlf`.
+
+**Quyết định style:** `CreateApplicationPage` dùng RHF+Zod (stack chính thức, form 16 field); các form nhỏ khác vẫn `useState`. User chọn giữ RHF và tự học (xem learning/form_react_hook.md).
+
+**Next:** **Phase 4 — AI Integration** (GeminiAiService, parse-jd auto-fill form, CV-JD match). Manual test UI trên browser của Phase 3 nên làm trước khi sang Phase 4.
+
+---
+
+## 2026-06-13 — Backend run + 4 fix (migration V4/V5, 401, list bytea)
+
+**Chạy backend lần đầu sau Phase 3 → gặp & fix 4 thứ:**
+- **V4 Flyway checksum mismatch**: V4 bị sửa (thêm comment) sau khi đã apply → revert file về gốc (`git checkout`), giữ tính bất biến migration. Bài học: KHÔNG sửa migration đã apply.
+- **V5 typo `PRIMARY KEYv`** (dòng 98, bảng `application_timeline_events`) → sửa `KEYv` → `KEY`. V5 chưa apply (transaction rollback sạch) nên sửa trực tiếp OK. Sau đó V5 apply thành công, 4 bảng tạo đủ.
+- **Auth trả 403 thay vì 401** khi thiếu token (pre-existing Phase 1, ảnh hưởng auto-refresh FE): thêm `auth/security/RestAuthenticationEntryPoint` (trả 401 + body ApiResponse) + wire `.exceptionHandling()` trong `SecurityConfig`. Verify: no-token → 401, token sai/hết hạn vẫn 401 (filter), permitAll (auth/health/swagger) không bị ảnh hưởng.
+
+- **List filter lỗi 500 `function lower(bytea) does not exist`**: trong `ApplicationRepository.findByFilters`, param `:search` khi null bị Hibernate 6 bind nhầm thành `bytea` (null String trong ngữ cảnh CONCAT/LOWER không suy ra kiểu). Fix: `CAST(:search AS string)` ở 2 chỗ LIKE → Hibernate bind đúng varchar. (Param enum `:source` không bị vì `@Enumerated` đã cho biết kiểu.)
+
+**Manual test backend (10 case qua curl, dùng /auth/refresh mint token): 10/10 PASS** — create 201 (+ baseline history null→APPLIED), detail 200, status hợp lệ 200 (+ history APPLIED→PHONE_SCREEN), status sai 400 INVALID_STATE_TRANSITION, PATCH 200, timeline 201, list filter statuses/search 200, validation 400, delete 204, get-deleted 404. **Backend Phase 3 verified.**
+
+**Next:** Frontend Phase 3 — File 10 `features/applications/types.ts`.
+
+---
+
+## 2026-06-13 — Phase 3: Application Management — BACKEND HOÀN THÀNH (9/9 file)
+
+**Done thêm (File 7-9):**
+- File 7: `application/service/ApplicationService.java` ✅ — 6 method (create, list, getById, update PATCH, changeStatus, delete, addTimelineEvent); ownership check tập trung `findOwnedOrThrow`; ghi baseline status history lúc create.
+- File 8: `application/controller/ApplicationController.java` ✅ — 7 endpoint REST `/api/v1/applications`. Thêm helper dùng chung `shared/dto/PagedResponse.java` (bọc `Page<T>` → `{items, pagination}`). Tự build `Pageable` (whitelist sort field + cap size 100).
+- File 9: tests ✅ — `ApplicationStateMachineTest` (12 test, logic thuần) + `ApplicationServiceOwnershipTest` (11 test Mockito). **23/23 PASS**.
+
+**Decisions session này (xem decisions.md):**
+- D-016: create cho phép chọn MỌI status (override restriction SAVED/APPLIED của D-015) — hỗ trợ backfill app đang dở dang.
+- D-017: giữ state machine CỨNG cho changeStatus (đã cân nhắc vs free-form/hybrid; phục vụ reminder Phase 5 + analytics).
+- Contract đổi query param `status` → `statuses` (khớp POJO `ApplicationFilter` + `@ModelAttribute` bind theo tên field).
+
+**Next:** Frontend Phase 3 — File 10 `features/applications/types.ts`. (Backend chưa chạy manual test qua Swagger — làm trước khi/đồng thời với frontend.)
+
+---
+
+## 2026-06-12 — Phase 3: Application Management (đang làm, backend gần xong)
+
+**Done (backend):**
+- File 1: `V5__create_application_tables.sql` ✅
+- File 2: 5 enum (`ApplicationStatus`, `WorkType`, `EmploymentType`, `ApplicationSource`, `TimelineEventType`) ✅ — trong `application/entity/`
+- File 3: `ContactPerson` record + 3 entity (`Application`, `ApplicationStatusHistory`, `ApplicationTimelineEvent`) ✅ — `@SQLRestriction`, `@PrePersist`/`@PreUpdate`, JSONB
+- File 4: 3 repository (`ApplicationRepository` với SpEL multi-status filter, `ApplicationStatusHistoryRepository`, `ApplicationTimelineEventRepository`) ✅ — trong `application/repository/`
+- File 5: 10 DTOs ✅ — trong `application/dto/` (`CreateApplicationRequest`, `UpdateApplicationRequest` POJO, `ChangeStatusRequest`, `ApplicationFilter` POJO, `ContactPersonRequest`, `ApplicationListItemResponse`, `ApplicationResponse`, `StatusHistoryResponse`, `TimelineEventResponse`, `CreateTimelineEventRequest`)
+- File 6: `ApplicationStateMachine` + `InvalidStateTransitionException` ✅ — StateMachine trong `application/service/`, exception trong `shared/exception/` (xử lý tập trung ở `GlobalExceptionHandler`)
+
+**Fixes trong session này:**
+- `01-coding-style.md`: sửa file structure (flat → sub-package), `@Where` → `@SQLRestriction`, `@CreatedDate` → `@PrePersist`, `ApplicationFilter` record → POJO
+- `02-architecture.md`: clarify rule về exception trong shared
+
+**Next:** File 7 — `ApplicationService` (trong `application/service/`)
+
+---
+
 ## 2026-06-09 — Phase 2: CV Management HOÀN THÀNH (13/13 file)
 
 **Done (backend 8 file):**

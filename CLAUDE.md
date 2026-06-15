@@ -12,6 +12,43 @@ Hướng dẫn cho Claude Code khi làm việc trong repo này. Đọc kỹ trư
 
 Cấu trúc: `backend/` (Spring Boot) · `frontend/` (React+TS) · `docs/` (spec) · `.kilocode/rules/` (rule chi tiết)
 
+## Đọc để hiểu dự án
+
+Đọc theo thứ tự sau để nắm toàn bộ context trước khi implement:
+
+### 1. Hiểu sản phẩm & tiến độ (bắt buộc đọc trước)
+| File | Nội dung |
+|------|----------|
+| [notes/handoff.md](notes/handoff.md) | **Đọc đầu tiên** — phase plan 7 phases, phase hiện tại, context resume project |
+| [notes/progress.md](notes/progress.md) | Nhật ký tiến độ từng phase — biết đã làm gì, còn gì |
+| [notes/decisions.md](notes/decisions.md) | Các quyết định kỹ thuật quan trọng + lý do |
+| [docs/08-user-stories.md](docs/08-user-stories.md) | Ai dùng app, dùng để làm gì — bức tranh toàn cảnh từ góc độ user |
+| [docs/01-features.md](docs/01-features.md) | Danh sách tính năng chi tiết của toàn bộ app |
+| [.kilocode/rules/00-project-overview.md](.kilocode/rules/00-project-overview.md) | Tech stack, danh sách module, critical rules không được vi phạm |
+
+### 2. Hiểu data & API
+| File | Nội dung |
+|------|----------|
+| [docs/02-database-schema.md](docs/02-database-schema.md) | ERD, các bảng, quan hệ — đọc trước khi đụng vào Entity/Repository |
+| [docs/03-api-contract.md](docs/03-api-contract.md) | Endpoint, request/response format — contract giữa FE và BE |
+
+### 3. Hiểu phần chuyên biệt (đọc khi liên quan)
+| File | Khi nào đọc |
+|------|-------------|
+| [docs/04-ai-integration.md](docs/04-ai-integration.md) | Trước khi làm AI/Gemini feature |
+| [docs/05-security.md](docs/05-security.md) | Trước khi làm auth, JWT, OAuth |
+| [docs/06-frontend-spec.md](docs/06-frontend-spec.md) | Trước khi làm UI/UX, component |
+| [docs/07-non-functional.md](docs/07-non-functional.md) | Khi cần biết yêu cầu performance, constraint |
+
+### 4. Hiểu cách code (đọc trước khi implement bất kỳ feature nào)
+Đọc theo thứ tự:
+1. [.kilocode/rules/02-architecture.md](.kilocode/rules/02-architecture.md) — module communication, transaction, cache, security pattern
+2. [.kilocode/rules/01-coding-style.md](.kilocode/rules/01-coding-style.md) — naming, cấu trúc file, nguyên tắc viết logic đơn giản
+3. [.kilocode/rules/03-workflow.md](.kilocode/rules/03-workflow.md) — sequence làm việc, format giải thích
+4. [.kilocode/rules/04-testing.md](.kilocode/rules/04-testing.md) — chiến lược test
+
+---
+
 ## Lệnh hay dùng
 
 ```bash

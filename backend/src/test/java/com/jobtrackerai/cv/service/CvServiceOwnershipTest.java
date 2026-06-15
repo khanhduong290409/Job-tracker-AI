@@ -71,6 +71,8 @@ class CvServiceOwnershipTest {
 
         assertThat(response.defaultCv()).isTrue();
         verify(cvVersionRepository).clearDefaultByUserId(10L); // bulk UPDATE trước khi set cái mới
+        //verify kiểm tra xem mock này có được gọi đúng không
+        //Nghĩa: "đảm bảo clearDefaultByUserId(10L) đã được gọi đúng 1 lần" — nếu không gọi → test FAIL.
     }
 
     @Test
@@ -81,6 +83,7 @@ class CvServiceOwnershipTest {
                 .isInstanceOf(ResourceNotFoundException.class);
 
         verify(cvVersionRepository, never()).clearDefaultByUserId(anyLong()); // không được clear gì
+        //never() — nếu ownership check fail thì không được gọi clearDefaultByUserId
     }
 
     // ── delete ────────────────────────────────────────────────────────────────

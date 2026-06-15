@@ -1,4 +1,4 @@
-# Handoff Context — 2026-06-09 (Phase 2 DONE, chuẩn bị Phase 3)
+# Handoff Context — 2026-06-15 (Phase 3 HOÀN THÀNH — backend + frontend; tiếp theo Phase 4 AI)
 
 File này tổng hợp toàn bộ context để chat mới resume project mà không cần đọc lại history dài. **Đọc thứ tự**: file này → [decisions.md](./decisions.md) → [progress.md](./progress.md) → rules.
 
@@ -14,20 +14,59 @@ File này tổng hợp toàn bộ context để chat mới resume project mà kh
 
 ## 2. Project ở giai đoạn nào
 
-**Phase 2: CV Management — DONE. Bắt đầu Phase 3 tiếp theo.**
+**Phase 3: Application CRUD + State Machine — HOÀN THÀNH (backend 9/9 + frontend 6/6). Tiếp theo: Phase 4 — AI Integration.**
 
-### Phase 3 — Application CRUD + State Machine (0 file xong)
+### Phase 3 — Backend (9/9 XONG ✅ — compile PASS, 23/23 test PASS)
 
-Cần đọc trước khi plan:
-- `docs/03-api-design.md` — Application endpoints
-- `docs/02-database-schema.md` — bảng `applications`
-- `docs/08-user-stories.md` — epic Application (US-APP-001..006)
+| # | File/Bước | Status |
+|---|-----------|--------|
+| 1 | `V5__create_application_tables.sql` | ✅ |
+| 2 | 5 enum (`ApplicationStatus`, `WorkType`, `EmploymentType`, `ApplicationSource`, `TimelineEventType`) | ✅ |
+| 3 | `ContactPerson` record + 3 entity (`Application`, `ApplicationStatusHistory`, `ApplicationTimelineEvent`) | ✅ |
+| 4 | 3 repository (`ApplicationRepository` multi-status SpEL, `StatusHistoryRepo`, `TimelineEventRepo`) | ✅ |
+| 5 | 10 DTOs | ✅ |
+| 6 | `ApplicationStateMachine` + `InvalidStateTransitionException` | ✅ |
+| 7 | `ApplicationService` (6 method, ownership tập trung, baseline history) | ✅ |
+| 8 | `ApplicationController` (7 endpoint) + `shared/dto/PagedResponse` | ✅ |
+| 9 | Tests: `ApplicationStateMachineTest` (12) + `ApplicationServiceOwnershipTest` (11) | ✅ |
 
-Scope dự kiến Phase 3:
-- `ApplicationStatus` enum (APPLIED, SCREENING, INTERVIEW, OFFER, REJECTED, WITHDRAWN)
-- CRUD: tạo application, list (filter by status), get detail, update, delete (soft)
-- State machine: `ApplicationStatus` transitions theo rules trong docs
-- Reminder cho interview (liên quan Phase 5 nhưng data model cần từ Phase 3)
+✅ Backend đã manual test qua curl (10/10 endpoint PASS) — xem learning/test-phase3-backend.md.
+
+### Phase 3 — Frontend (6/6 XONG ✅ — tsc + eslint + build PASS)
+
+| # | File/Bước | Status |
+|---|-----------|--------|
+| 10 | `features/applications/types.ts` (+ enum vào `types/common.ts`, `TIMELINE_EVENT_LABELS`) | ✅ |
+| 11 | `features/applications/api/application-api.ts` (7 endpoint, `paramsSerializer indexes:null`) | ✅ |
+| 12 | `features/applications/api/queries.ts` (TanStack, `keepPreviousData`) | ✅ |
+| 13 | `ApplicationStatusBadge.tsx` + `ApplicationCard.tsx` (+ `status-meta.ts`: config + `ALLOWED_TRANSITIONS`) | ✅ |
+| 14 | `ApplicationListPage` + `CreateApplicationPage` (RHF+Zod) + `ApplicationDetailPage` | ✅ |
+| 15 | `routes.tsx` update (3 route applications) | ✅ |
+
+**PHASE 3 HOÀN THÀNH (backend + frontend).** Còn lại: manual test UI trên browser (chưa làm).
+
+### Cấu trúc package đã dùng (QUAN TRỌNG — follow đúng)
+
+```
+application/
+├── entity/         ← enums + entities + ContactPerson record
+├── repository/     ← 3 repositories
+├── service/        ← ApplicationService + ApplicationStateMachine
+├── controller/     ← ApplicationController
+├── dto/            ← 10 DTOs
+└── exception/      ← rỗng (InvalidStateTransitionException đã chuyển sang shared/exception/)
+```
+
+### Decisions quan trọng trong session này (xem decisions.md)
+
+- `InvalidStateTransitionException` đặt trong `shared/exception/`, xử lý trong `GlobalExceptionHandler` — không tạo handler riêng per-module
+- `ApplicationFilter` là POJO class (Lombok), không phải record — vì `@ModelAttribute` cần setters
+- `UpdateApplicationRequest` là POJO class — PATCH semantics: null = giữ nguyên
+- `ContactPerson` entity record có 5 field: `name, email, phone, role, linkedinUrl`
+- `ApplicationResponse` (detail) include `statusHistory` + `timelineEvents`; `ApplicationListItemResponse` (list) nhẹ hơn, không có `jdContent`
+- `ApplicationStateMachine` nằm trong `application/service/` (không phải root)
+
+Defer sang Phase 4+: parse-jd (AI), file upload endpoint, AI analysis, Kanban
 
 ### Phase 2 — DONE (tổng kết)
 
@@ -43,9 +82,15 @@ Scope dự kiến Phase 3:
 
 **D-012:** Cloudinary từ Phase 2, không dùng LocalFileStorageService. `delete()` vẫn no-op (Phase 7).
 
-**D-013 (MỚI):** `QueryClientProvider` phải bọc toàn bộ app trong `App.tsx`. `QueryClient` instance khai báo ngoài component để không bị recreate.
+**D-013:** `QueryClientProvider` phải bọc toàn bộ app trong `App.tsx`. `QueryClient` instance khai báo ngoài component để không bị recreate.
 
-**Kỹ thuật đã dùng trong Phase 2 (không cần giải thích lại):**
+**D-016 (Phase 3):** create application cho phép chọn MỌI status (default SAVED) — override restriction SAVED/APPLIED của D-015, để backfill app đang dở dang. "create = chụp ảnh thực tại" vs "changeStatus = tiến trình về sau".
+
+**D-017 (Phase 3):** giữ state machine CỨNG cho changeStatus (đã cân nhắc vs free-form/hybrid). Lý do: học pattern + cho `status_history` sạch → nền cho reminder Phase 5 (FOLLOW_UP_AFTER_APPLY, STATUS_STALE) + analytics.
+
+**Contract đổi:** query param list `status` → `statuses` (khớp field POJO `ApplicationFilter` + `@ModelAttribute`).
+
+**Kỹ thuật đã dùng (không cần giải thích lại ở session sau):**
 - `@Async("aiTaskExecutor")` + self-injection `@Autowired @Lazy` để gọi @Async từ cùng class
 - `Loader.loadPDF(byte[])` — PDFBox 3.x API (không phải `PDDocument.load()`)
 - `@SQLDelete` + `@SQLRestriction` — soft delete Hibernate 6.4
@@ -53,14 +98,18 @@ Scope dự kiến Phase 3:
 - TanStack Query v5: `refetchInterval: (query) => query.state.data?.some(...) ? 3000 : false`
 - `useRef` để reset DOM `<input type="file">` sau submit
 - `variables` từ `useMutation` để track per-card loading state
+- SpEL trong `@Query`: `:#{#statuses.isEmpty()} = true OR a.status IN :statuses` — multi-status optional filter
+- `@JdbcTypeCode(SqlTypes.JSON)` + `columnDefinition = "jsonb"` — JSONB field với typed Java record
+- `@PrePersist`/`@PreUpdate` + `Instant.now()` — không dùng Spring Auditing
+- `Map.of()` + `Set.of()` — immutable collections cho state machine transition table
 
 ## 4. Plan tổng (7 phases)
 
 - **Phase 0:** Setup hạ tầng ← **DONE**
 - **Phase 1:** Auth (Google OAuth + JWT) ← **DONE**
 - **Phase 2:** CV Management ← **DONE**
-- **Phase 3:** Application CRUD + State Machine ← **TIẾP THEO**
-- **Phase 4:** AI Integration + edit parsed CV data (US-CV-002)
+- **Phase 3:** Application CRUD + State Machine ← **DONE**
+- **Phase 4:** AI Integration + edit parsed CV data (US-CV-002) ← **TIẾP THEO**
 - **Phase 5:** Reminders & Notifications
 - **Phase 6:** Email Integration
 - **Phase 7:** Analytics + Polish + Deploy

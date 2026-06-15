@@ -88,7 +88,7 @@ State machine rules:
 
 ### 2.5 Views
 - **List view**: table với filter (status, source, date range), sort, search
-- **Kanban view**: drag-drop giữa status columns
+- **Kanban view**: drag-drop giữa status columns *(defer Phase 5+)*
 - **Detail view**: full info + timeline + AI analysis + email threads + files
 
 ---

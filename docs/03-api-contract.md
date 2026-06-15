@@ -327,7 +327,7 @@ Response 200:
 List applications.
 
 Query params:
-- `status`: filter by status (can be multiple: `?status=APPLIED&status=PHONE_SCREEN`)
+- `statuses`: filter by status (can be multiple: `?statuses=APPLIED&statuses=PHONE_SCREEN`)
 - `source`: filter by source
 - `search`: search in company/position/JD (full-text)
 - `dateFrom`, `dateTo`: applied date range

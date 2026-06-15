@@ -19,21 +19,36 @@
 
 ### File Organization (per module)
 
-Style: **đơn giản, không tách interface trừ khi cần**.
+Style: **sub-package theo layer** — nhất quán với `auth` và `cv` module đã implement.
 
 ```
 com.jobtrackerai.application/
-├── ApplicationController.java
-├── ApplicationService.java          # concrete @Service class
-├── ApplicationRepository.java
-├── Application.java                 # entity
-├── ApplicationStatus.java           # enum
-├── ApplicationStateMachine.java     # business logic helper
+├── entity/
+│   ├── Application.java                    # entity chính
+│   ├── ApplicationStatusHistory.java       # entity lịch sử status
+│   ├── ApplicationTimelineEvent.java       # entity timeline
+│   ├── ContactPerson.java                  # record cho JSONB field
+│   ├── ApplicationStatus.java              # enum
+│   ├── WorkType.java                       # enum
+│   ├── EmploymentType.java                 # enum
+│   ├── ApplicationSource.java              # enum
+│   └── TimelineEventType.java              # enum
+├── repository/
+│   ├── ApplicationRepository.java
+│   ├── ApplicationStatusHistoryRepository.java
+│   └── ApplicationTimelineEventRepository.java
+├── service/
+│   ├── ApplicationService.java             # concrete @Service class
+│   └── ApplicationStateMachine.java        # @Component helper, dùng bởi service
+├── controller/
+│   └── ApplicationController.java
 ├── dto/
 │   ├── CreateApplicationRequest.java
 │   ├── UpdateApplicationRequest.java
 │   ├── ApplicationResponse.java
-│   ├── ApplicationFilter.java
+│   ├── ApplicationFilter.java              # POJO class (không phải record — cần setters cho @ModelAttribute)
+│   ├── StatusHistoryResponse.java
+│   ├── TimelineEventResponse.java
 │   └── ChangeStatusRequest.java
 └── exception/
     └── InvalidStateTransitionException.java
@@ -51,11 +66,12 @@ Vì có thể swap provider (Gemini → Grok), AI service dùng interface patter
 ```
 com.jobtrackerai.ai/
 ├── AiService.java              # interface
-├── GeminiAiService.java        # implementation
-├── AiServiceConfig.java        # @Configuration để chọn bean
+├── impl/
+│   └── GeminiAiService.java    # implementation
+├── config/
+│   └── AiServiceConfig.java    # @Configuration để chọn bean
 └── prompt/
-    ├── PromptTemplate.java
-    └── ...
+    └── PromptTemplate.java
 ```
 
 ### Layer Rules
@@ -243,7 +259,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 @Setter
 @NoArgsConstructor
 @SQLDelete(sql = "UPDATE applications SET deleted_at = NOW() WHERE id = ?")
-@Where(clause = "deleted_at IS NULL")
+@SQLRestriction("deleted_at IS NULL")   // Hibernate 6.4+ — thay thế @Where đã deprecated
 public class Application {
     
     @Id
@@ -267,7 +283,9 @@ public class Application {
     @Column(name = "jd_url")
     private String jdUrl;
     
-    private String source;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ApplicationSource source;
     
     @Column(name = "applied_date")
     private LocalDate appliedDate;
@@ -277,21 +295,32 @@ public class Application {
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ApplicationStatus status;
+    private ApplicationStatus status = ApplicationStatus.SAVED;
     
     @Column(columnDefinition = "TEXT")
     private String notes;
     
-    @CreatedDate
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
     
-    @LastModifiedDate
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
     
     @Column(name = "deleted_at")
     private Instant deletedAt;
+
+    // Dùng @PrePersist/@PreUpdate thay vì @CreatedDate/@LastModifiedDate
+    // Lý do: không cần @EnableJpaAuditing + @EntityListeners, ít magic hơn, dễ test hơn
+    @PrePersist
+    void onCreate() {
+        createdAt = Instant.now();
+        updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = Instant.now();
+    }
 }
 ```
 
@@ -325,13 +354,19 @@ public record ApplicationResponse(
     Instant updatedAt
 ) {}
 
-public record ApplicationFilter(
-    ApplicationStatus status,
-    String source,
-    String search,
-    LocalDate dateFrom,
-    LocalDate dateTo
-) {}
+// ApplicationFilter là POJO class, KHÔNG phải record
+// Lý do: @ModelAttribute (bind từ query params) cần no-arg constructor + setters
+// Record không có setters → Spring MVC không thể bind các field optional bị thiếu
+@Getter
+@Setter
+@NoArgsConstructor
+public class ApplicationFilter {
+    private List<ApplicationStatus> statuses;  // multi-status filter
+    private ApplicationSource source;
+    private String search;
+    private LocalDate dateFrom;
+    private LocalDate dateTo;
+}
 ```
 
 ### State Machine (helper class trong module application)

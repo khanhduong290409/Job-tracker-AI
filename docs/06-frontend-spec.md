@@ -311,7 +311,7 @@ apiClient.interceptors.response.use(
 - Quick action: create application
 
 ### Applications List (`/app/applications`)
-- Tabs: List view | Kanban view
+- Tabs: List view | Kanban view *(Kanban defer Phase 5+)*
 - Filters: status, source, date range
 - Search bar (debounced 300ms)
 - Sort options

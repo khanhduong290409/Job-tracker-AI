@@ -125,8 +125,10 @@ public class CvService {
             try (InputStream is = fileStorageService.load(cv.getFileUrl()).getInputStream()) {
                 pdfBytes = is.readAllBytes();
             }
-            try (PDDocument doc = Loader.loadPDF(pdfBytes)) {//Loader.loadPDF(bytes) → PDFBox parse mảng bytes thành đối tượng PDF có cấu trúc (trang, font, text...)
+            try (PDDocument doc = Loader.loadPDF(pdfBytes)) {
+                //Loader.loadPDF(bytes) → PDFBox parse mảng bytes thành đối tượng PDF có cấu trúc (trang, font, text...)
                 String rawText = new PDFTextStripper().getText(doc);
+                //PDFBox duyệt qua từng trang, trích xuất toàn bộ text thành một String dài.
                 cv.setRawText(rawText);
                 cv.setParseStatus(CvParseStatus.COMPLETED);
                 cv.setParseError(null);

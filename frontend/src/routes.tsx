@@ -4,6 +4,9 @@ import { ProtectedLayout } from './components/layout/ProtectedLayout';
 import { LoginPage } from './features/auth/pages/LoginPage';
 import { CallbackPage } from './features/auth/pages/CallbackPage';
 import { CvListPage } from './features/cv/pages/CvListPage';
+import { ApplicationListPage } from './features/applications/pages/ApplicationListPage';
+import { CreateApplicationPage } from './features/applications/pages/CreateApplicationPage';
+import { ApplicationDetailPage } from './features/applications/pages/ApplicationDetailPage';
 
 // Phase 3/4/... sẽ replace các placeholder bên dưới bằng page thật
 
@@ -39,6 +42,10 @@ export function AppRoutes() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPlaceholder />} />
         <Route path="/cv" element={<CvListPage />} />
+        {/* Route tĩnh /new đặt trước /:id để không bị match nhầm thành id */}
+        <Route path="/applications" element={<ApplicationListPage />} />
+        <Route path="/applications/new" element={<CreateApplicationPage />} />
+        <Route path="/applications/:id" element={<ApplicationDetailPage />} />
       </Route>
 
       <Route path="*" element={<NotFoundPlaceholder />} />

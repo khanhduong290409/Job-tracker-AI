@@ -51,7 +51,7 @@ Nếu thấy 2 module phụ thuộc cyclic → refactor (vd: tách shared logic 
 - Common config: `JacksonConfig`, `WebConfig`, `CacheConfig`
 - Common utilities: `DateUtils`, etc.
 
-**Rule**: `shared` KHÔNG depend module nào khác.
+**Rule**: `shared` KHÔNG depend module nào khác. Exception mới nếu cần xử lý tập trung trong `GlobalExceptionHandler` → đặt vào `shared/exception/` (như `InvalidStateTransitionException`), không đặt trong module rồi import ngược vào `shared`.
 
 ## Transaction Boundaries
 

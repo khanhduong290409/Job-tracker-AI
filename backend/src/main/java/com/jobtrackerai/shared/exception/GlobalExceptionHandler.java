@@ -44,6 +44,12 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("BAD_REQUEST", e.getMessage()));
     }
 
+    @ExceptionHandler(InvalidStateTransitionException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidTransition(InvalidStateTransitionException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("INVALID_STATE_TRANSITION", e.getMessage()));
+    }
+
     /**
      * Spring auto-fire khi @Valid trên DTO fail. Tách field errors thành structured details.
      */

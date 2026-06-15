@@ -252,11 +252,18 @@ Các phần khác: chỉ manual test, KHÔNG viết Mockito test.
 
 User là sinh viên 6 tháng — quen Spring + React căn bản (CRUD, JPA, useState, API call), CHƯA quen pattern security/error handling/infra của project pro. Mục tiêu giải thích: học được, không chỉ "biết để tiếp tục".
 
+**MẶC ĐỊNH: NGẮN GỌN.** User đã yêu cầu rõ — mỗi câu trả lời ngắn gọn, dễ hiểu nhưng đủ ý, KHÔNG dài dòng. Cụ thể:
+- Trả lời thẳng vào câu hỏi, cắt phần rào đón / lặp lại / "extra context" không được hỏi.
+- Mỗi ý 1-2 câu. Không giải thích thứ user đã biết hoặc đã nói ở lượt trước.
+- Câu hỏi về 1 đoạn code/khái niệm cụ thể → trả lời gọn, KHÔNG dùng cấu trúc heading 4 phần.
+- Cấu trúc 4 phần đầy đủ (mục "Explain Decisions") CHỈ dùng khi vừa code xong 1 file mới cho user review — không dùng cho hỏi-đáp thông thường.
+- Vẫn đủ ý: nếu một điểm thực sự quan trọng/dễ nhầm thì nêu, nhưng 1-2 câu là đủ.
+
 **Nguyên tắc giải thích (bắt buộc):**
 - **Đơn giản, dễ hiểu** — ngôn ngữ đời thường, tránh thuật ngữ hàn lâm khi không cần thiết
-- **Chi tiết từng phần** — mỗi phần có heading rõ, giải thích đủ để hiểu, không bỏ sót
+- **Chi tiết vừa đủ** — mỗi phần có heading rõ KHI giải thích file/concept phức tạp; với câu hỏi nhỏ thì trả lời thẳng, không cần heading
 - **Không dài dòng** — mỗi ý 1-2 câu là đủ, không giải thích thứ đã rõ ràng, không lặp lại
-- **Luôn thêm ví dụ cách dùng** — sau khi giải thích xong, thêm snippet ngắn cho thấy nó được gọi/dùng như thế nào trong thực tế
+- **Thêm ví dụ cách dùng KHI hữu ích** — snippet ngắn nếu nó giúp hiểu nhanh hơn; câu hỏi đơn giản thì không bắt buộc
 
 **Concept đơn giản** (vd "cn() là helper ghép className"):
 - Cấu trúc 3 phần ngắn: (1) Là gì, (2) Tại sao cần, (3) Không có thì sao

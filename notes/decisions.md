@@ -6,6 +6,31 @@ Format: ngày, decision, lý do, trade-off (nếu có).
 
 ---
 
+## 2026-06-12 — Phase 3 (revise)
+
+### D-017: Giữ state machine CỨNG cho changeStatus (đã cân nhắc, không đổi)
+- **Quyết định:** `changeStatus()` tiếp tục validate qua `ApplicationStateMachine` (chặn transition không hợp lệ). KHÔNG chuyển sang mô hình tự do (status là nhãn) hay hybrid cảnh báo.
+- **Bối cảnh:** Đã review cách job tracker thật vận hành — đa số consumer tool (Huntr/Teal/Trello-based) để user đổi status tự do, không state machine; state machine cứng phổ biến hơn ở ATS doanh nghiệp nhiều-người. Tức là state machine ở dự án này nghiêng về "học pattern".
+- **Lý do giữ:** Đúng mục tiêu intern project (học pattern pro: transition table, validation tập trung, terminal state). Cho dữ liệu `status_history` sạch để analytics/pattern analysis. Trade-off kém linh hoạt được bù bởi D-016 (create cho chọn mọi status → vẫn backfill được).
+- **Kết hợp:** create linh hoạt (D-016) + changeStatus cứng (D-017) = "dễ vào, chặt khi đi tiếp".
+
+### D-016: Create cho phép CHỌN MỌI status (override phần restriction của D-015)
+- **Quyết định:** `CreateApplicationRequest.status` optional, không gửi → default SAVED, **nhưng cho phép chọn bất kỳ status nào** (kể cả terminal ACCEPTED/REJECTED/WITHDRAWN). Bỏ check `CREATABLE_STATUSES` trong `ApplicationService.create()`.
+- **Lý do:** Use case backfill — user mới biết app khi đơn đã ở giữa chừng (vd đã PHONE_SCREEN/TECHNICAL_INTERVIEW). Bắt tạo từ SAVED rồi tự chuyển từng bước = UX tệ + tạo mốc lịch sử giả. App theo dõi cá nhân → user là nguồn sự thật.
+- **Mô hình:** "create = chụp ảnh thực tại" (chọn trạng thái hiện có) vs "changeStatus = tiến trình về sau" (state machine ràng buộc). State machine vẫn nguyên vẹn — chỉ quản lý transition kể từ điểm xuất phát. Baseline history row `from=null → to=status` ghi trung thực điểm bắt đầu theo dõi, không bịa mốc trung gian.
+- **Override:** phần "chỉ chấp nhận SAVED/APPLIED" của D-015 không còn hiệu lực. Phần `appliedDate` nullable / không auto-set của D-015 VẪN giữ.
+
+### D-015: Default status khi tạo application = SAVED, appliedDate để null
+- **Quyết định:** `CreateApplicationRequest` có field `status` optional, không truyền thì default SAVED. `appliedDate` nullable — không auto-set. (Phần restriction "chỉ SAVED/APPLIED" đã bị **D-016 override**.)
+- **Lý do:** User có thể paste job link để bookmark/nghiên cứu trước khi apply (feature parse-jd ở Phase 4). Default APPLIED sẽ sai semantic với use case này. `appliedDate` để null tránh data sai — hint trên UI nhắc user điền khi apply thật.
+
+### D-014: Kanban view defer Phase 5+
+- **Quyết định:** Phase 3 frontend chỉ làm List view. Kanban drag-drop (cần `@dnd-kit` hoặc `react-beautiful-dnd`) defer sang Phase 5+.
+- **Lý do:** Kanban cần thêm dependency chưa được approve + nhiều component phức tạp. Phase 3 đã có ~27 files, thêm Kanban sẽ thành ~35+. List view đủ chức năng để demo và test.
+- **Ảnh hưởng:** `docs/01-features.md` + `docs/06-frontend-spec.md` đã update ghi chú defer.
+
+---
+
 ## 2026-06-09 — Phase 2 hotfix
 
 ### D-013: QueryClientProvider bắt buộc bọc toàn bộ app trong App.tsx
