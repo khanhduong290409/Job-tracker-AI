@@ -62,6 +62,13 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.validationError("VALIDATION_ERROR", "Validation failed", details));
     }
 
+    @ExceptionHandler(AiException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAiError(AiException e) {
+        log.error("AI service error: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.error("AI_SERVICE_ERROR", "AI analysis temporarily unavailable, please try again later"));
+    }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ApiResponse<Void>> handleFileTooLarge(MaxUploadSizeExceededException e) {
         return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)

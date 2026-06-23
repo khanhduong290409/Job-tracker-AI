@@ -161,7 +161,7 @@ class ApplicationServiceOwnershipTest {
         ownCv.setUserId(1L);
         when(cvVersionRepository.findByIdAndUserId(50L, 1L)).thenReturn(Optional.of(ownCv));
         when(applicationRepository.save(any())).thenAnswer(i -> {
-            Application a = i.getArgument(0);
+            Application a = i.getArgument(0);//cuoi method co gia thich
             a.setId(100L);
             return a;
         });
@@ -174,6 +174,8 @@ class ApplicationServiceOwnershipTest {
         verify(applicationRepository).save(any());
         verify(statusHistoryRepository).save(any()); // baseline history null → APPLIED
     }
+//Vì ở dòng when(applicationRepository.save(any())), ta đang stub method save(...). Khi service chạy thật và gọi applicationRepository.save(newApplication), thì newApplication chính là tham số thứ 0 truyền vào save().
+//i.getArgument(0) = "lấy lại tham số thứ 0 mà code vừa truyền vào lúc gọi" → nên nó đúng bằng object Application đó.
 
     // ── addTimelineEvent ──────────────────────────────────────────────────────
 

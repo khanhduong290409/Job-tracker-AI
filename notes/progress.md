@@ -6,6 +6,77 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-06-21 — Phase 4: AI Integration — BACKEND HOÀN THÀNH (13/13 file)
+
+**Done thêm hôm nay (File 9-13):**
+- File 9: `ai/entity/AiAnalysis.java` ✅ — entity bảng `ai_analyses`. `result` là `JsonNode` (đa hình: chứa JdInsightResponse hoặc CvJdMatchResponse). KHÔNG soft delete (CASCADE), append-only nên chỉ `@PrePersist`, không `@PreUpdate`.
+- File 10: `ai/repository/AiAnalysisRepository.java` ✅ — 2 derived query: `findFirst...OrderByCreatedAtDesc` (latest) + `...AndInputHash...` (DB cache check). Cache scope theo `applicationId` (giữ ownership, không tái dùng chéo).
+- File 11: `ai/dto/JdInsightResponse.java` + `CvJdMatchResponse.java` ✅ — record khớp Template 3 & 2 (docs/04). Field enum-like để `String` (tolerant output AI), `Integer` thay `int` (thiếu field → null). `@JsonIgnoreProperties(ignoreUnknown=true)`.
+- File 12: `ai/service/AiAnalysisService.java` ✅ — lõi: `extractJd` (stateless), `getJdInsight`, `getCvJdMatch(force)`. DB-as-cache hash-keyed (SHA-256 + HexFormat). KHÔNG `@Transactional` ở method public (tránh giữ DB connection suốt lúc gọi Gemini). Generic helper `analyzeAndSave`/`findCached` dùng `valueToTree`/`convertValue`.
+- File 13: `ai/dto/ExtractJdRequest.java` + `ai/controller/AiController.java` + `ai/service/AiAnalysisServiceTest.java` ✅ — 3 endpoint + **9 Mockito test PASS** (cache hit/miss, ownership 404, force bypass, CV thiếu/chưa parse → 400, extract blank → 400).
+
+**Verify:** `./mvnw compile` PASS · `./mvnw test -Dtest=AiAnalysisServiceTest` → **9/9 PASS, BUILD SUCCESS**.
+
+**Quyết định hôm nay:**
+- **Cache: DB-only (hash-keyed), KHÔNG dùng Redis @Cacheable ở AiAnalysisService** (user chốt). Phát hiện input đổi do `inputHash` (SHA-256) lo, không phải Redis. Redis vẫn còn trong project (CacheConfig + cache `ai-*` khai báo sẵn nhưng tạm chưa dùng cho AI) — có thể thêm tầng 1 sau (cần self-injection `@Lazy`). Defer Phase 7.
+- **Endpoint extract-jd path = `/api/v1/ai/extract-jd`** (namespace dưới `/ai`, khác note gốc ghi `/extract-jd`). FE File 15 gọi đúng path này.
+- 3 endpoint Phase 4: `POST /api/v1/ai/extract-jd` · `GET /api/v1/applications/{id}/jd-insight` · `GET /api/v1/applications/{id}/cv-jd-match?force=true`.
+
+**Next:** Manual test backend AI (cần `GEMINI_API_KEY` trong `.env`) — user sẽ yêu cầu hướng dẫn sau khi đọc code. Rồi Frontend File 14 — `features/ai/types.ts`.
+
+**Còn lại Phase 4:** Frontend (File 14-19, 6 file) + US-CV-002 (File 20-22, 3 file).
+
+---
+
+## 2026-06-19 — Phase 4: AI Integration — BẮT ĐẦU
+
+**Plan (22 file):**
+
+Backend (13 file):
+- File 1: `V6__create_ai_analyses_table.sql`
+- File 2: `shared/ai/GeminiProperties.java`
+- File 3: `shared/ai/AiPrompt.java`
+- File 4: `shared/ai/AiResponse.java`
+- File 5: `shared/ai/AiService.java` (interface)
+- File 6: `shared/ai/GeminiAiService.java`
+- File 7: `shared/ai/JsonResponseParser.java`
+- File 8: `ai/entity/AiAnalysisType.java`
+- File 9: `ai/entity/AiAnalysis.java`
+- File 10: `ai/repository/AiAnalysisRepository.java`
+- File 11: `ai/dto/JdInsightResponse.java` + `CvJdMatchResponse.java`
+- File 12: `ai/service/AiAnalysisService.java`
+- File 13: `ai/controller/AiController.java` + `AiAnalysisServiceTest.java`
+
+Frontend (6 file):
+- File 14: `features/ai/types.ts`
+- File 15: `features/ai/api/ai-api.ts` + `queries.ts`
+- File 16: `features/ai/components/JdInsightSection.tsx`
+- File 17: `features/ai/components/AiMatchCard.tsx`
+- File 18: Update `ApplicationDetailPage.tsx`
+- File 19: Update `CreateApplicationPage.tsx` (JD auto-extract)
+
+US-CV-002 (3 file):
+- File 20: `CvService.updateParsedData()` + `PATCH /api/v1/cv/{id}/parsed-data`
+- File 21: `features/cv/components/CvParsedDataEditor.tsx`
+- File 22: Update `CvListPage.tsx` / `CvDetailPage.tsx`
+
+Endpoints: `POST /extract-jd` · `GET /applications/{id}/jd-insight` · `GET /applications/{id}/cv-jd-match?force=true`
+Defer: interview prep (US-AI-004), pattern analysis (US-AI-005) → Phase 7
+
+**Done (8/22 file):**
+- File 1: `V6__create_ai_analyses_table.sql` ✅
+- File 2: `shared/ai/GeminiProperties.java` ✅
+- File 3: `shared/ai/AiPrompt.java` ✅
+- File 4: `shared/ai/AiResponse.java` ✅
+- File 5: `shared/ai/AiService.java` (interface — exception duy nhất của rule no-interface) ✅
+- File 6: `shared/exception/AiException.java` + `shared/ai/GeminiAiService.java` + update `GlobalExceptionHandler` (503 handler) ✅
+- File 7: `shared/ai/JsonResponseParser.java` ✅
+- File 8: `ai/entity/AiAnalysisType.java` ✅
+
+**Next:** File 9 — `ai/entity/AiAnalysis.java`
+
+---
+
 ## 2026-06-15 — Phase 3 FRONTEND HOÀN THÀNH (6 file) → PHASE 3 ĐÓNG
 
 **Done (frontend Phase 3):**

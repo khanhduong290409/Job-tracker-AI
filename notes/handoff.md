@@ -1,4 +1,4 @@
-# Handoff Context — 2026-06-15 (Phase 3 HOÀN THÀNH — backend + frontend; tiếp theo Phase 4 AI)
+# Handoff Context — 2026-06-21 (Phase 4 AI Integration — BACKEND XONG 13/13, tiếp Frontend File 14)
 
 File này tổng hợp toàn bộ context để chat mới resume project mà không cần đọc lại history dài. **Đọc thứ tự**: file này → [decisions.md](./decisions.md) → [progress.md](./progress.md) → rules.
 
@@ -14,7 +14,43 @@ File này tổng hợp toàn bộ context để chat mới resume project mà kh
 
 ## 2. Project ở giai đoạn nào
 
-**Phase 3: Application CRUD + State Machine — HOÀN THÀNH (backend 9/9 + frontend 6/6). Tiếp theo: Phase 4 — AI Integration.**
+**Phase 4: AI Integration — ĐANG LÀM (13/22 file). Backend 13/13 ✅ · Frontend 0/6 · CV-002 0/3.**
+
+### Phase 4 — tiến độ chi tiết
+
+**BACKEND HOÀN THÀNH (13/13)** — compile PASS, AiAnalysisServiceTest 9/9 PASS. Chi tiết File 9-13 xem progress.md (2026-06-21).
+
+**Next:** Manual test backend AI (cần `GEMINI_API_KEY` trong `.env`), rồi Frontend File 14 — `features/ai/types.ts`.
+
+3 endpoint backend đã có:
+- `POST /api/v1/ai/extract-jd` (body `{jdContent}`) → JdInsightResponse, stateless auto-fill form
+- `GET /api/v1/applications/{id}/jd-insight` → JdInsightResponse (cache theo hash JD)
+- `GET /api/v1/applications/{id}/cv-jd-match?force=true` → CvJdMatchResponse (cần application có CV đã parse COMPLETED)
+
+**Done (shared/ai layer — 7 file):**
+- `V6__create_ai_analyses_table.sql` — bảng `ai_analyses` (input_hash, result JSONB, CASCADE từ application)
+- `shared/ai/GeminiProperties.java` — `@ConfigurationProperties("app.gemini")`, apiKey + model
+- `shared/ai/AiPrompt.java` — record: systemPrompt, userPrompt, temperature, maxTokens, jsonMode; factory `AiPrompt.of()`
+- `shared/ai/AiResponse.java` — record: rawText, tokensUsed, modelUsed, latencyMs
+- `shared/ai/AiService.java` — interface: `generate(AiPrompt)` + `isHealthy()`
+- `shared/ai/GeminiAiService.java` — RestClient call Gemini v1beta, retry 3x exponential backoff (1s→2s→4s), phân biệt transient (429/5xx) vs permanent (400/403)
+- `shared/ai/JsonResponseParser.java` — strip ```json fence, extract `{…}`, parse thành typed DTO
+- `shared/exception/AiException.java` — RuntimeException, handler trả 503 trong GlobalExceptionHandler
+
+**Done (ai/ module — 6 file, File 8-13):**
+- `ai/entity/AiAnalysisType.java` — enum: `JD_INSIGHT`, `CV_JD_MATCH`
+- `ai/entity/AiAnalysis.java` — entity (result JsonNode, append-only, no soft delete)
+- `ai/repository/AiAnalysisRepository.java` — latest + DB-cache-by-hash query
+- `ai/dto/JdInsightResponse.java` + `CvJdMatchResponse.java` + `ExtractJdRequest.java`
+- `ai/service/AiAnalysisService.java` — lõi (DB-cache hash-keyed, no @Transactional)
+- `ai/controller/AiController.java` + `ai/service/AiAnalysisServiceTest.java` (9/9 PASS)
+
+**Quyết định kỹ thuật Phase 4 (thêm vào decisions.md sau):**
+- `shared/ai/` = infrastructure (HTTP client) — nhiều module dùng. `ai/` = domain module (business logic + entity + controller)
+- `GeminiAiService` dùng `RestClient.Builder` (prototype bean của Spring Boot) thay vì `RestClient.create()` để kế thừa global customizer
+- Private nested records trong `GeminiAiService` cho Gemini request/response schema — `@JsonIgnoreProperties` trên response records để tolerant với field mới của Gemini API
+- `JsonResponseParser` inject `ObjectMapper` từ Spring context (không `new`) để nhất quán config toàn hệ thống
+- `AiException` → 503 SERVICE_UNAVAILABLE (không phải 500) — báo "downstream down", client có thể retry
 
 ### Phase 3 — Backend (9/9 XONG ✅ — compile PASS, 23/23 test PASS)
 

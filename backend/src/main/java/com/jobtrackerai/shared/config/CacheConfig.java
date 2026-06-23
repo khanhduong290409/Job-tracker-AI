@@ -30,6 +30,7 @@ public class CacheConfig {
                 .disableCachingNullValues()
                 .serializeValuesWith(SerializationPair.fromSerializer(
                         new GenericJackson2JsonRedisSerializer()));
+                        //GenericJackson2JsonRedisSerializer() - lưu cache dưới dạng json thay vì binary
 
         Map<String, RedisCacheConfiguration> perCacheConfigs = Map.of(
                 "ai-cv-parse", defaultConfig.entryTtl(Duration.ofDays(90)),
