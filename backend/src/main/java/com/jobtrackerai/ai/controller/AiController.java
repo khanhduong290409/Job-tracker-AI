@@ -19,7 +19,8 @@ public class AiController {
     private final AiAnalysisService aiAnalysisService;
     private final SecurityUtils securityUtils;
 
-    /** Trích xuất insight từ JD thô — chưa gắn application (auto-fill form). Stateless, không cần ownership. */
+    // cả extractId và jdInsight đều là api để gửi jdcontent cho gemini phân  tích trả về json cho fontend hiển thị
+    // nhưng mà khác ngữ cảnh: extractId lấy từ body trong request còn jdInsight lấy từ jdContent trong application sau khi application được tạo
     @PostMapping("/ai/extract-jd")
     public ResponseEntity<ApiResponse<JdInsightResponse>> extractJd(@Valid @RequestBody ExtractJdRequest request) {
         JdInsightResponse data = aiAnalysisService.extractJd(request.jdContent());

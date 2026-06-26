@@ -6,6 +6,35 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-06-24 — Phase 4: AI Integration — FRONTEND HOÀN THÀNH (File 14-19)
+
+**Done hôm nay (6 file frontend):**
+- File 14: `features/ai/types.ts` ✅ — mirror 3 DTO backend. Field enum-like để `string` (tolerant output AI), số `number | null`, mọi field `| null` (AI có thể bỏ qua → component phải guard).
+- File 15: `features/ai/api/ai-api.ts` + `queries.ts` ✅ — 3 hàm API + 4 hook. **AI call lazy** (`enabled` do caller bật khi bấm nút) tránh tự nướng quota. `extract-jd` = mutation; `jd-insight`/`cv-jd-match` = query `staleTime: Infinity`; `useReanalyzeMatch` (force) ghi đè cache qua `setQueryData`.
+- File 16: `features/ai/components/JdInsightSection.tsx` ✅ — lazy trigger, render info + chip kỹ năng/tech stack + bullet trách nhiệm/quyền lợi. Mỗi nhóm tự ẩn khi rỗng.
+- File 17: `features/ai/components/AiMatchCard.tsx` ✅ — điểm khớp (màu theo ngưỡng 80/60), 4 thanh breakdown, strengths/gaps/suggestions, chip keyword, nút "Phân tích lại" (force). `describeError` phân biệt **400** (thiếu CV parse) vs **503** (AI down).
+- File 18: `ApplicationDetailPage.tsx` ✅ — nhúng `JdInsightSection` + `AiMatchCard` (truyền `appId`) sau khối Nội dung JD.
+- File 19: `CreateApplicationPage.tsx` ✅ — nút "✨ Phân tích JD & tự điền": `useExtractJd` → map `JdInsight` vào field (companyName/position/location + workType/employmentType validate enum). `setIf` không clobber field user bằng null. Dùng `setValue/getValues/watch` của RHF.
+
+**Verify:** `tsc --noEmit` PASS · `eslint` 0 error (1 warning lành tính `react-hooks/incompatible-library` ở `watch('jdContent')` — React Compiler bỏ qua memo component này, KHÔNG ảnh hưởng build/hành vi; chỉ hiện khi `npm run lint`).
+
+**Quyết định kỹ thuật:**
+- AI call **lazy on-demand**, KHÔNG auto-fetch lúc mount (tốn phí + chậm). Query nhận `enabled` từ component.
+- Field enum AI để `string` ở FE + validate `includes()` trước khi `setValue` (auto-fill) → tránh chọn giá trị rác lệch enum.
+- `force` re-analyze = mutation riêng + `setQueryData`, KHÔNG nhét vào queryKey (tránh 2 cache entry rời).
+- Phân biệt lỗi 400 vs 503 ở match card vì 400 cần user hành động khác (gắn CV parse) — khác JdInsight gộp chung message.
+
+**Next (Phase 4 còn lại — US-CV-002, 3 file):**
+- File 20: `CvService.updateParsedData()` + `PATCH /api/v1/cv/{id}/parsed-data` (backend)
+- File 21: `features/cv/components/CvParsedDataEditor.tsx`
+- File 22: update `CvListPage`/`CvDetailPage`
+
+**Manual test UI defer:** sẽ test toàn bộ flow AI trên browser sau khi có `GEMINI_API_KEY` trong `.env` (extract-jd auto-fill + jd-insight + cv-jd-match).
+
+**Lưu ý git:** backend Phase 4 đã commit local `7904994` (chưa push — user tự push). Frontend File 14-19 chưa commit.
+
+---
+
 ## 2026-06-21 — Phase 4: AI Integration — BACKEND HOÀN THÀNH (13/13 file)
 
 **Done thêm hôm nay (File 9-13):**

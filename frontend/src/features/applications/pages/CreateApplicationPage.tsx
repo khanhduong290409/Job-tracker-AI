@@ -14,6 +14,7 @@ import {
   type EmploymentType,
   type WorkType,
 } from '@/types/common';
+import { useExtractJd } from '@/features/ai/api/queries';
 import { useCreateApplication } from '../api/queries';
 import { APPLICATION_STATUS_CONFIG } from '../status-meta';
 import type { CreateApplicationRequest } from '../types';
@@ -45,7 +46,7 @@ type FormValues = z.infer<typeof schema>;
 type FormValues = {
   name: string;
   age: number;
-  email: string;
+  email: stringz;
 };
 tóm lại: để tạo type tự động thì cần dùng z.infer<> nhưng <> chỉ nhận type chứ không nhận value nên typeof schema
 để chuyển schema thành type
@@ -86,6 +87,7 @@ function getErrorMessage(err: unknown): string {
 export function CreateApplicationPage() {
   const navigate = useNavigate();
   const { mutate: createApplication, isPending, error } = useCreateApplication();
+  const { mutate: extractJd, isPending: isExtracting, error: extractError } = useExtractJd();
 
   // Hôm nay (giờ local) dạng YYYY-MM-DD — chặn chọn ngày nộp ở tương lai (khớp @PastOrPresent backend)
   const today = new Date().toLocaleDateString('en-CA');
@@ -93,6 +95,9 @@ export function CreateApplicationPage() {
   const {
   register,        // Đăng ký input vào form (bên dưới có giải thích)
   handleSubmit,    // Xử lý submit form
+  setValue,        // Gán giá trị field bằng code (dùng cho auto-fill từ AI)
+  getValues,       // Đọc giá trị field hiện tại (lấy jdContent gửi cho AI)
+  watch,           // Theo dõi field để re-render (bật/tắt nút theo độ dài JD)
   formState: { errors },  // Lấy ra object errors từ formState -> hiển thị lỗi cho user
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -115,6 +120,49 @@ export function CreateApplicationPage() {
       notes: '',
     },
   });
+
+  const jdValue = watch('jdContent');
+
+  // Gán field nếu AI trả giá trị (không clobber bằng null/'' → giữ thứ user đã nhập).
+  //vì sao đoạn này lại dùng keyofFormValues? 
+  //tại vì dòng setValue nó đòi hỏi key phải thuộc keyof FormValues.
+  //nếu ta khai báo field: string rồi truyền vào setValue, typescript sẽ báo lỗi:
+  //"string không gán được cho keyof"
+  //tại sao ta dùng field: FormValues mà lại là keyof FormValues?
+  //field: keyof FormValues thì field ở đây là tên của 1 biến , còn nếu dùng type: FormValues thì field ở đây là 1 type
+  //tóm lại: field ở đây nghĩa là tên field của 1 trong các value field của FormValues
+  //ví dụ FormValues có companyName, position thì field sẽ là companyName hoặc là posion 
+  function setIf(field: keyof FormValues, value: string | null) {
+    if (value != null && value.trim() !== '') {
+      setValue(field, value.trim(), { shouldValidate: true });
+    }//shouldValidate:  bật validate lại field ngay sau khi set.
+  }
+
+  function handleExtract() {
+    const jd = getValues('jdContent').trim();
+    if (jd.length < 10) return;
+    extractJd(
+      { jdContent: jd },
+      {
+        onSuccess: (insight) => {
+          setIf('companyName', insight.companyName);
+          setIf('position', insight.position);
+          setIf('location', insight.location);
+          // Field enum: chỉ điền nếu AI trả đúng giá trị hợp lệ (option select), tránh chọn rác.
+          // bên dưới có giải thích readonly
+          if (insight.workType && (WORK_TYPES as readonly string[]).includes(insight.workType)) {
+            setValue('workType', insight.workType, { shouldValidate: true });
+          }
+          if (
+            insight.employmentType &&
+            (EMPLOYMENT_TYPES as readonly string[]).includes(insight.employmentType)
+          ) {
+            setValue('employmentType', insight.employmentType, { shouldValidate: true });
+          }
+        },
+      },
+    );
+  }
 
   function onSubmit(values: FormValues) {
     const body: CreateApplicationRequest = {
@@ -160,6 +208,26 @@ export function CreateApplicationPage() {
         <Field label="Nội dung JD *" error={errors.jdContent?.message}>
           <textarea rows={5} className={inputClass} {...register('jdContent')} />
         </Field>
+
+        {/* AI auto-fill: trích JD → điền công ty/vị trí/địa điểm/hình thức/loại hình */}
+        <div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleExtract}
+            disabled={isExtracting || jdValue.trim().length < 10}
+          >
+            {isExtracting ? 'Đang phân tích...' : '✨ Phân tích JD & tự điền'}
+          </Button>
+          {extractError ? (
+            <p className="mt-1 text-xs text-red-600">{getErrorMessage(extractError)}</p>
+          ) : (
+            <p className="mt-1 text-xs text-gray-400">
+              AI tự điền công ty, vị trí, địa điểm, hình thức, loại hình từ JD.
+            </p>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Nguồn *" error={errors.source?.message}>
@@ -265,3 +333,14 @@ export function CreateApplicationPage() {
 // → React Query bắt lỗi → set error = AxiosError
 
 
+  //vì sao đoạn này lại dùng keyofFormValues? 
+  //tại vì dòng setValue nó đòi hỏi key phải thuộc keyof FormValues.
+  //nếu ta khai báo field: string rồi truyền vào setValue, typescript sẽ báo lỗi:
+  //"string không gán được cho keyof"
+  //tại sao ta dùng field: FormValues mà lại là keyof FormValues?
+  //field: keyof FormValues thì field ở đây là tên của 1 biến , còn nếu dùng type: FormValues thì field ở đây là 1 type
+
+
+  //WORK_TYPES khai báo với as const → TypeScript coi nó là mảng siêu hẹp (chỉ đúng 3 giá trị 'ONSITE' | 'HYBRID' | 'REMOTE'), và readonly.
+  //Nên WORK_TYPES.includes(insight.workType) bị lỗi: insight.workType là string bất kỳ, không khớp 3 giá trị hẹp đó.
+  //Cast as readonly string[] = nói với TS "coi đây là mảng string thường (vẫn chỉ đọc)" → .includes(string) mới chạy được.

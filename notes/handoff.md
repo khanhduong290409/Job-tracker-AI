@@ -1,4 +1,4 @@
-# Handoff Context — 2026-06-21 (Phase 4 AI Integration — BACKEND XONG 13/13, tiếp Frontend File 14)
+# Handoff Context — 2026-06-24 (Phase 4 AI Integration — BACKEND + FRONTEND XONG, còn US-CV-002 File 20-22)
 
 File này tổng hợp toàn bộ context để chat mới resume project mà không cần đọc lại history dài. **Đọc thứ tự**: file này → [decisions.md](./decisions.md) → [progress.md](./progress.md) → rules.
 
@@ -14,13 +14,19 @@ File này tổng hợp toàn bộ context để chat mới resume project mà kh
 
 ## 2. Project ở giai đoạn nào
 
-**Phase 4: AI Integration — ĐANG LÀM (13/22 file). Backend 13/13 ✅ · Frontend 0/6 · CV-002 0/3.**
+**Phase 4: AI Integration — ĐANG LÀM (19/22 file). Backend 13/13 ✅ · Frontend 6/6 ✅ · CV-002 0/3.**
 
 ### Phase 4 — tiến độ chi tiết
 
-**BACKEND HOÀN THÀNH (13/13)** — compile PASS, AiAnalysisServiceTest 9/9 PASS. Chi tiết File 9-13 xem progress.md (2026-06-21).
+**BACKEND HOÀN THÀNH (13/13)** — compile PASS, AiAnalysisServiceTest 9/9 PASS. Chi tiết File 9-13 xem progress.md (2026-06-21). Đã commit local `7904994` (chưa push).
 
-**Next:** Manual test backend AI (cần `GEMINI_API_KEY` trong `.env`), rồi Frontend File 14 — `features/ai/types.ts`.
+**FRONTEND HOÀN THÀNH (6/6, File 14-19)** — tsc PASS, eslint 0 error. Chi tiết xem progress.md (2026-06-24). Chưa commit.
+- `features/ai/types.ts` (mirror DTO) · `api/ai-api.ts` + `queries.ts` (lazy query, force re-analyze)
+- `JdInsightSection.tsx` · `AiMatchCard.tsx` (phân biệt lỗi 400 vs 503)
+- Nhúng vào `ApplicationDetailPage` · nút auto-fill trong `CreateApplicationPage`
+- 1 warning lành tính: `watch('jdContent')` + React Compiler (`react-hooks/incompatible-library`) — chỉ hiện khi `npm run lint`, không ảnh hưởng build. Chưa quyết né hay giữ.
+
+**Next:** US-CV-002 (File 20-22) — File 20 `CvService.updateParsedData()` + `PATCH /api/v1/cv/{id}/parsed-data`. Sau đó manual test UI toàn bộ AI flow trên browser (cần `GEMINI_API_KEY` trong `.env`).
 
 3 endpoint backend đã có:
 - `POST /api/v1/ai/extract-jd` (body `{jdContent}`) → JdInsightResponse, stateless auto-fill form

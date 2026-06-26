@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { AiMatchCard } from '@/features/ai/components/AiMatchCard';
+import { JdInsightSection } from '@/features/ai/components/JdInsightSection';
 import type { ApplicationStatus } from '@/types/common';
 import {
   useAddTimelineEvent,
@@ -160,6 +162,10 @@ export function ApplicationDetailPage() {
           {app.jdContent}
         </p>
       </div>
+
+      {/* AI: phân tích JD + độ khớp CV–JD */}
+      <JdInsightSection applicationId={appId} />
+      <AiMatchCard applicationId={appId} />
 
       {/* Change status */}
       <div className="mt-8 rounded-lg border border-gray-200 bg-white p-4">
