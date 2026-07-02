@@ -1,6 +1,8 @@
 # Handoff Context — 2026-07-02 (Phase 4 — CV auto-parse manual-test PASS sau 3 fix; còn test AI flow + commit)
 
-> **Update 2026-07-02:** Manual test upload CV phát hiện & fix 3 bug (xem progress.md + blockers.md B-002/B-003): (1) transaction readOnly làm status kẹt PENDING → `@Transactional(NOT_SUPPORTED)` trên parseCvAsync; (2) Gemini `.env` đổi `gemini-2.5-flash` (2.0-flash free tier limit:0); (3) tắt thinking (`thinkingBudget:0`) + maxTokens parse 8192. CvServiceOwnershipTest 14/14 PASS. Upload→PROCESSING→COMPLETED OK. **Còn:** commit US-CV-002 + 3 fix; manual test extract-jd/jd-insight/cv-jd-match; rồi đóng Phase 4.
+> **Update 2026-07-02:** Manual test upload CV phát hiện & fix 3 bug (xem progress.md + blockers.md B-002/B-003): (1) transaction readOnly làm status kẹt PENDING → `@Transactional(NOT_SUPPORTED)` trên parseCvAsync; (2) Gemini `.env` đổi `gemini-2.5-flash` (2.0-flash free tier limit:0); (3) tắt thinking (`thinkingBudget:0`) + maxTokens parse 8192. CvServiceOwnershipTest 14/14 PASS. Upload→PROCESSING→COMPLETED OK. Đã commit + push `9167607`.
+>
+> **Update 2026-07-02 (2):** Feature GẮN CV vào application (bật cv-jd-match) — 5 file (backend UpdateApplicationRequest+ApplicationService.update ownership; frontend types+CreatePage dropdown+DetailPage dropdown). Manual test PASS toàn bộ AI flow (extract-jd/jd-insight/cv-jd-match/edit parsed data/gắn CV). **CHƯA commit.** **Phase 4 coi như XONG** → next: commit feature gắn CV, rồi sang Phase 5 (Reminders).
 
 File này tổng hợp toàn bộ context để chat mới resume project mà không cần đọc lại history dài. **Đọc thứ tự**: file này → [decisions.md](./decisions.md) → [progress.md](./progress.md) → rules.
 

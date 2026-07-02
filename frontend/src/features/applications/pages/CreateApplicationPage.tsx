@@ -15,6 +15,7 @@ import {
   type WorkType,
 } from '@/types/common';
 import { useExtractJd } from '@/features/ai/api/queries';
+import { useCvList } from '@/features/cv/api/queries';
 import { useCreateApplication } from '../api/queries';
 import { APPLICATION_STATUS_CONFIG } from '../status-meta';
 import type { CreateApplicationRequest } from '../types';
@@ -38,6 +39,7 @@ const schema = z.object({
   sourceDetail: z.string().trim().max(255),
   appliedDate: z.string(),
   notes: z.string().trim().max(10000),
+  cvVersionId: z.string(), // id CV dạng string (value của select); '' = không gắn
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -118,8 +120,11 @@ export function CreateApplicationPage() {
       sourceDetail: '',
       appliedDate: '',
       notes: '',
+      cvVersionId: '',
     },
   });
+
+  const { data: cvList } = useCvList();
 
   const jdValue = watch('jdContent');
 
@@ -182,6 +187,7 @@ export function CreateApplicationPage() {
       sourceDetail: emptyToUndef(values.sourceDetail),
       appliedDate: emptyToUndef(values.appliedDate),
       notes: emptyToUndef(values.notes),
+      cvVersionId: numOrUndef(values.cvVersionId),
     };
 
     createApplication(body, {
@@ -228,6 +234,19 @@ export function CreateApplicationPage() {
             </p>
           )}
         </div>
+
+        <Field label="CV ứng tuyển" error={errors.cvVersionId?.message}>
+          <select className={inputClass} {...register('cvVersionId')}>
+            <option value="">-- Không gắn CV --</option>
+            {(cvList ?? []).map((cv) => (
+              <option key={cv.id} value={cv.id}>
+                {cv.label}
+                {cv.parseStatus === 'COMPLETED' ? '' : ' (chưa parse xong)'}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-400">Gắn CV để dùng tính năng phân tích độ khớp CV–JD.</p>
+        </Field>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Nguồn *" error={errors.source?.message}>

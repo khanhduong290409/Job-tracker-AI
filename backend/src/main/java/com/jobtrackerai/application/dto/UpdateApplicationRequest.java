@@ -36,4 +36,7 @@ public class UpdateApplicationRequest {
     @PastOrPresent private LocalDate appliedDate;
     @Valid private ContactPersonRequest contactPerson;
     @Size(max = 10000) private String notes;
+    // Gắn/đổi CV cho application (bật tính năng match CV–JD). null = giữ nguyên (PATCH semantics).
+    // Ownership của cvVersionId được validate trong ApplicationService.update().
+    private Long cvVersionId;
 }

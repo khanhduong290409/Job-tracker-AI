@@ -141,10 +141,10 @@ export interface CreateApplicationRequest {
   notes?: string;
 }
 
-// PATCH — mọi field optional, KHÔNG đổi status (dùng changeStatus) và KHÔNG đổi cvVersionId
+// PATCH — mọi field optional, KHÔNG đổi status (dùng changeStatus). cvVersionId ĐƯỢC phép đổi (gắn CV).
 export type UpdateApplicationRequest = Partial<
-  Omit<CreateApplicationRequest, 'status' | 'cvVersionId'>
->;//Omit<T, K> — lấy type T nhưng bỏ các field tên K. Ở đây bỏ status và cvVersionId khỏi CreateApplicationRequest (vì update không cho đổi 2 field này).
+  Omit<CreateApplicationRequest, 'status'>
+>;//Omit<T, K> — lấy type T nhưng bỏ các field tên K. Ở đây chỉ bỏ status (đổi status qua changeStatus riêng).
 // Partial<T> — làm tất cả field của T thành optional(không bắt buộc)
 export interface ChangeStatusRequest {
   newStatus: ApplicationStatus;

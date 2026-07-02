@@ -119,6 +119,13 @@ public class ApplicationService {
         if (req.getContactPerson() != null) app.setContactPerson(toContactPerson(req.getContactPerson()));
         if (req.getNotes() != null) app.setNotes(req.getNotes());
 
+        // Đổi CV: cvVersionId (nếu gửi) phải thuộc về chính user này (giống create()).
+        if (req.getCvVersionId() != null) {
+            cvVersionRepository.findByIdAndUserId(req.getCvVersionId(), userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("CV version not found"));
+            app.setCvVersionId(req.getCvVersionId());
+        }
+
         // Validate sau khi merge: giá trị mới có thể đến từ req hoặc giá trị cũ trên entity.
         validateSalaryRange(app.getSalaryMin(), app.getSalaryMax());
 

@@ -6,6 +6,27 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-07-02 (2) — Phase 4: Feature GẮN CV vào application (bật cv-jd-match) + manual test AI flow
+
+**Bối cảnh:** manual test phát hiện `cv-jd-match` không test được qua UI — application không có cách gắn CV (backend `create` nhận `cvVersionId` nhưng form không có ô chọn; `update` không có field này). Làm feature gắn CV NGAY trước Phase 5 (user chốt, không dồn Phase 5).
+
+**Done (5 file):**
+- Backend: `UpdateApplicationRequest` thêm `cvVersionId`; `ApplicationService.update()` xử lý kèm **check ownership** (tái dùng pattern `findByIdAndUserId` như create). Compile PASS.
+- Frontend: `types.ts` `UpdateApplicationRequest` bỏ `cvVersionId` khỏi Omit (giờ update được); `CreateApplicationPage` thêm dropdown CV (useCvList, optional); `ApplicationDetailPage` thêm dropdown gắn/đổi CV (controlled bám `app.cvVersionId`, gọi useUpdateApplication). tsc PASS, lint 0 error (1 warning cũ watch).
+
+**Quyết định:**
+- Dropdown liệt kê MỌI CV, nhãn "(chưa parse xong)" cho CV chưa COMPLETED — không chặn cứng, match tự báo lỗi 400 nếu chọn CV chưa xong.
+- **Chưa hỗ trợ gỡ CV (unlink)** — PATCH null=giữ nguyên; chọn "-- Chưa gắn CV --" ở detail không mutate. Defer (hiếm dùng, tránh phá pattern PATCH).
+- DetailPage select controlled bám server state (`app.cvVersionId`), không dùng useState riêng.
+
+**Manual test PASS:** tạo app gắn CV, đổi CV ở detail; cv-jd-match chạy (điểm + breakdown + strengths/gaps/suggestions), force re-analyze OK; jd-insight OK; extract-jd auto-fill OK. AI analyses lưu bảng `ai_analyses` (cache theo inputHash); extract-jd stateless không lưu.
+
+**Note DB test:** app id=4 từng patch tay `cv_version_id=11` để test nhanh trước khi có UI — giờ đổi qua UI được.
+
+**Next:** commit feature này. Rồi Phase 4 coi như ĐÓNG (mọi flow AI + edit parsed data + gắn CV đều PASS) → sang Phase 5 (Reminders & Notifications).
+
+---
+
 ## 2026-07-02 — Phase 4: MANUAL TEST flow AI → fix 3 bug → CV auto-parse chạy thông
 
 **Manual test upload CV → phát hiện & fix 3 vấn đề (parse trước đó treo PENDING mãi):**

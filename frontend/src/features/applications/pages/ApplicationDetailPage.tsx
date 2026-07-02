@@ -3,12 +3,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { AiMatchCard } from '@/features/ai/components/AiMatchCard';
 import { JdInsightSection } from '@/features/ai/components/JdInsightSection';
+import { useCvList } from '@/features/cv/api/queries';
 import type { ApplicationStatus } from '@/types/common';
 import {
   useAddTimelineEvent,
   useApplication,
   useChangeStatus,
   useDeleteApplication,
+  useUpdateApplication,
 } from '../api/queries';
 import { ApplicationStatusBadge } from '../components/ApplicationStatusBadge';
 import { ALLOWED_TRANSITIONS, APPLICATION_STATUS_CONFIG } from '../status-meta';
@@ -32,6 +34,9 @@ export function ApplicationDetailPage() {
   const { mutate: changeStatus, isPending: isChanging, error: statusError } = useChangeStatus();
   const { mutate: deleteApplication, isPending: isDeleting } = useDeleteApplication();
   const { mutate: addEvent, isPending: isAddingEvent } = useAddTimelineEvent();
+  const { mutate: updateApplication, isPending: isLinkingCv } = useUpdateApplication();
+
+  const { data: cvList } = useCvList();
 
   // ── Change-status form ──
   const [newStatus, setNewStatus] = useState<ApplicationStatus | ''>('');
@@ -87,6 +92,13 @@ export function ApplicationDetailPage() {
   function handleDelete() {
     if (!window.confirm('Xóa đơn ứng tuyển này?')) return;
     deleteApplication(appId, { onSuccess: () => navigate('/applications') });
+  }
+
+  function handleCvChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const val = e.target.value;// trả về id cv nhưng là kiểu string nên cần ép number
+    if (!val) return; // chọn "chưa gắn" không gỡ được CV (PATCH null = giữ nguyên) — defer unlink
+    updateApplication({ id: appId, body: { cvVersionId: Number(val) } });//trong learning file form react hook có giải thích
+    //đoạn này tại sao lại chỉ truyền body có mỗi id mà không có các field khác trong khi kiểu dữ liệu body ở queries là UpdateApplicationRequest
   }
 
   const salary =
@@ -160,6 +172,31 @@ export function ApplicationDetailPage() {
         <h2 className="text-sm font-semibold text-gray-700">Nội dung JD</h2>
         <p className="mt-1 max-h-60 overflow-y-auto whitespace-pre-wrap rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
           {app.jdContent}
+        </p>
+      </div>
+
+      {/* CV ứng tuyển — gắn CV để bật phân tích độ khớp CV–JD */}
+      <div className="mt-6">
+        <h2 className="text-sm font-semibold text-gray-700">CV ứng tuyển</h2>
+        <select
+          value={app.cvVersionId ?? ''}//value ở đây lấy cvversionid của app từ backend
+          //sau đó đối chiếu với các option dựa vào value, nếu trùng thì hiển thị option đó
+          //thật ra nó là việc register làm ở form react hook nhưng ở đây ta không dùng form mà chỉ là sellect bình thường
+          //nên ta dùng value thủ công chỉ để hiển thị option mà user đã chọn
+          onChange={handleCvChange}
+          disabled={isLinkingCv}
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+        >
+          <option value="">-- Chưa gắn CV --</option>
+          {(cvList ?? []).map((cv) => (
+            <option key={cv.id} value={cv.id}>
+              {cv.label}
+              {cv.parseStatus === 'COMPLETED' ? '' : ' (chưa parse xong)'}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-gray-400">
+          Cần CV đã phân tích xong (COMPLETED) để chạy độ khớp CV–JD.
         </p>
       </div>
 
