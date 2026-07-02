@@ -30,7 +30,10 @@ public class GeminiAiService implements AiService {
 
     @Override
     public AiResponse generate(AiPrompt prompt) {
-        String uri = properties.getModel() + ":generateContent?key=" + properties.getApiKey();
+        // Ghép URL tuyệt đối: nếu để tương đối "model:generateContent", dấu ':' ở segment đầu
+        // khiến RestClient hiểu nhầm model là URI scheme → "invalid URI scheme". URL tuyệt đối
+        // (scheme https, ':' nằm sau '/') thì hợp lệ. baseUrl trên RestClient bị bỏ qua khi uri tuyệt đối.
+        String uri = BASE_URL + properties.getModel() + ":generateContent?key=" + properties.getApiKey();
         GeminiRequest request = buildRequest(prompt);
 
         Exception lastException = null;
@@ -93,7 +96,10 @@ public class GeminiAiService implements AiService {
                 : null;
 
         String mimeType = prompt.jsonMode() ? "application/json" : "text/plain";
-        GenerationConfig config = new GenerationConfig(prompt.temperature(), prompt.maxTokens(), mimeType);
+        // thinkingBudget=0: TẮT chế độ "thinking" của Gemini 2.5. Các tác vụ của app đều là xuất JSON
+        // có cấu trúc ở temp thấp — thinking tiêu tốn output tokens cho suy luận nội bộ, đẩy JSON vượt
+        // maxOutputTokens → response bị cắt cụt → parse fail. Tắt đi cho output ngắn gọn, nhanh, ổn định.
+        GenerationConfig config = new GenerationConfig(prompt.temperature(), prompt.maxTokens(), mimeType, new ThinkingConfig(0));
 
         return new GeminiRequest(List.of(userContent), systemInstruction, config);
     }
@@ -137,8 +143,12 @@ public class GeminiAiService implements AiService {
     private record GenerationConfig(
             double temperature,
             int maxOutputTokens,
-            String responseMimeType
+            String responseMimeType,
+            ThinkingConfig thinkingConfig
     ) {}
+
+    // thinkingBudget=0 tắt hẳn thinking; >0 giới hạn số token cho thinking (Gemini 2.5).
+    private record ThinkingConfig(int thinkingBudget) {}
 
     // ── Response records (JSON → Java, deserialization only) ─────────────────
 

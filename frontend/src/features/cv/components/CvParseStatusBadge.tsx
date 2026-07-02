@@ -6,6 +6,13 @@ interface CvParseStatusBadgeProps {
 }
 
 // Record<CvParseStatus, ...> đảm bảo compile error nếu thêm status mới mà quên thêm config.
+/*
+Record<K, V> là gì?
+Record<K, V> là kiểu của TypeScript, mô tả một object mà:
+
+Key có kiểu K
+Value có kiểu V
+ */
 const STATUS_CONFIG: Record<CvParseStatus, { label: string; className: string }> = {
   PENDING:    { label: 'Chờ xử lý',     className: 'bg-gray-100 text-gray-600' },
   PROCESSING: { label: 'Đang xử lý...', className: 'bg-amber-100 text-amber-700' },

@@ -1,6 +1,6 @@
 import { api } from '@/lib/api/axios';
 import type { ApiResponse } from '@/types/api';
-import type { CvVersion } from '../types';
+import type { CvParsedData, CvVersion, CvVersionDetail } from '../types';
 
 export const cvApi = {
   upload: async (file: File, label: string): Promise<CvVersion> => {
@@ -19,8 +19,20 @@ export const cvApi = {
     return res.data.data!;
   },
 
-  getById: async (id: number): Promise<CvVersion> => {
-    const res = await api.get<ApiResponse<CvVersion>>(`/cv/${id}`);
+  getById: async (id: number): Promise<CvVersionDetail> => {
+    const res = await api.get<ApiResponse<CvVersionDetail>>(`/cv/${id}`);
+    return res.data.data!;
+  },
+
+  // US-CV-002: lưu lại parsed data đã sửa (thay thế toàn bộ).
+  updateParsedData: async (id: number, parsedData: CvParsedData): Promise<CvVersionDetail> => {
+    const res = await api.patch<ApiResponse<CvVersionDetail>>(`/cv/${id}/parsed-data`, parsedData);
+    return res.data.data!;
+  },
+
+  // Chạy lại parse (vd CV bị FAILED). Trả về detail với status PENDING → polling tiếp tục.
+  reparse: async (id: number): Promise<CvVersionDetail> => {
+    const res = await api.post<ApiResponse<CvVersionDetail>>(`/cv/${id}/reparse`);
     return res.data.data!;
   },
 

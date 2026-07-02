@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import type { CvVersion } from '../types';
 import { CvParseStatusBadge } from './CvParseStatusBadge';
@@ -24,7 +25,12 @@ export function CvCard({ cv, onSetDefault, onDelete, isSettingDefault, isDeletin
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <h3 className="truncate font-semibold text-gray-900">{cv.label}</h3>
+            <Link
+              to={`/cv/${cv.id}`}
+              className="truncate font-semibold text-gray-900 hover:text-blue-600 hover:underline"
+            >
+              {cv.label}
+            </Link>
             {cv.defaultCv && (
               <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
                 Mặc định

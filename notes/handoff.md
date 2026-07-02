@@ -1,4 +1,6 @@
-# Handoff Context — 2026-06-24 (Phase 4 AI Integration — BACKEND + FRONTEND XONG, còn US-CV-002 File 20-22)
+# Handoff Context — 2026-07-02 (Phase 4 — CV auto-parse manual-test PASS sau 3 fix; còn test AI flow + commit)
+
+> **Update 2026-07-02:** Manual test upload CV phát hiện & fix 3 bug (xem progress.md + blockers.md B-002/B-003): (1) transaction readOnly làm status kẹt PENDING → `@Transactional(NOT_SUPPORTED)` trên parseCvAsync; (2) Gemini `.env` đổi `gemini-2.5-flash` (2.0-flash free tier limit:0); (3) tắt thinking (`thinkingBudget:0`) + maxTokens parse 8192. CvServiceOwnershipTest 14/14 PASS. Upload→PROCESSING→COMPLETED OK. **Còn:** commit US-CV-002 + 3 fix; manual test extract-jd/jd-insight/cv-jd-match; rồi đóng Phase 4.
 
 File này tổng hợp toàn bộ context để chat mới resume project mà không cần đọc lại history dài. **Đọc thứ tự**: file này → [decisions.md](./decisions.md) → [progress.md](./progress.md) → rules.
 
@@ -14,7 +16,21 @@ File này tổng hợp toàn bộ context để chat mới resume project mà kh
 
 ## 2. Project ở giai đoạn nào
 
-**Phase 4: AI Integration — ĐANG LÀM (19/22 file). Backend 13/13 ✅ · Frontend 6/6 ✅ · CV-002 0/3.**
+**Phase 4: AI Integration — TẤT CẢ CODE XONG. Backend AI 13/13 ✅ · Frontend AI 6/6 ✅ · US-CV-002 backend 5/5 ✅ · US-CV-002 frontend 3/3 ✅. CHỈ CÒN: manual test trên browser (cần GEMINI_API_KEY) → rồi ĐÓNG Phase 4, sang Phase 5.**
+
+### US-CV-002 — XONG (backend 2026-06-27 + frontend 2026-06-28)
+**BACKEND (File 20.1-20.5)** — compile PASS, CvServiceOwnershipTest 11/11 PASS.
+- AI parse CV auto (Template 1) fill `parsed_data` lúc upload → unblock cv-jd-match.
+- Tách transaction: parseCvAsync orchestrator (không @Tx) + self.markProcessing/saveParseSuccess/saveParseFailure (3 tx ngắn), Gemini call ngoài tx. (Đã inline downloadPdf/extractText/aiParse vào parseCvAsync theo feedback no-tiny-method-split.)
+- 3 endpoint: `GET /cv/{id}` (kèm parsedData) · `PATCH /cv/{id}/parsed-data` (full-replace) · `POST /cv/{id}/reparse` (202).
+- DTO: `CvParsedData` (tolerant, khớp Template 1), `CvDetailResponse` (= CvVersionResponse + parsedData).
+
+**FRONTEND (File 21-23)** — tsc + lint PASS.
+- File 21: types (`CvParsedData`, `CvVersionDetail`) + api (getById→detail, updateParsedData, reparse) + queries (useCv tái dùng, polling thêm PENDING, useUpdateParsedData, useReparseCv).
+- File 22: `CvParsedDataEditor` (RHF + useFieldArray; list chuỗi = textarea mỗi dòng 1 mục; form model riêng + map toForm/toParsed).
+- File 23: `CvDetailPage` MỚI (PDF iframe + editor side-by-side, key=updatedAt remount) + route `/cv/:id` + label CvCard thành link.
+
+**Git:** US-CV-002 (backend + frontend) CHƯA commit.
 
 ### Phase 4 — tiến độ chi tiết
 

@@ -6,6 +6,84 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-07-02 — Phase 4: MANUAL TEST flow AI → fix 3 bug → CV auto-parse chạy thông
+
+**Manual test upload CV → phát hiện & fix 3 vấn đề (parse trước đó treo PENDING mãi):**
+
+1. **Bug transaction (nghiêm trọng, code):** `parseCvAsync` thừa kế `@Transactional(readOnly=true)` cấp class → các `self.markProcessing/saveParseSuccess/saveParseFailure` (propagation REQUIRED) join vào tx readOnly → Hibernate FlushMode MANUAL → **không flush → status không bao giờ ghi** (CV kẹt PENDING, FE poll vô hạn). Xác nhận: DB `updated_at` == `created_at`, log không có UPDATE nào. Stack trace cho thấy parseCvAsync chạy trong TransactionInterceptor. **Fix:** `@Transactional(propagation = Propagation.NOT_SUPPORTED)` trên `parseCvAsync` → 3 method self.* mỗi cái tự mở tx read-write mới.
+
+2. **Gemini quota (config/.env):** `gemini-2.0-flash` free tier `limit: 0` → 429 RESOURCE_EXHAUSTED mọi call. Test trực tiếp key: ListModels OK, `gemini-2.5-flash` → HTTP 200 (còn quota), `2.0-flash`/`2.5-pro` → 429. **Key KHÔNG hỏng**, chỉ cần đổi model. **Fix:** `.env` `GEMINI_MODEL=gemini-2.5-flash`. (Default trong application.yaml vẫn `gemini-2.0-flash` — chưa đổi, `.env` override.)
+
+3. **Thinking cắt cụt JSON (code):** `gemini-2.5-flash` là model "thinking" — tiêu output tokens cho suy luận (`thoughtsTokenCount`) đẩy JSON vượt `maxTokens=4000` → response cắt cụt → parse fail. **Fix:** (a) `GeminiAiService` thêm `thinkingConfig{thinkingBudget:0}` vào GenerationConfig (tắt thinking toàn cục — mọi tác vụ đều xuất JSON deterministic temp thấp); (b) `CvService` nâng maxTokens parse CV 4000 → 8192.
+
+**Test:** thêm 3 Mockito test (saveParseSuccess→COMPLETED, saveParseFailure→FAILED+error, cv-deleted→no-save) vào `CvServiceOwnershipTest` → **14/14 PASS**. Lưu ý: bug transaction chỉ manual-test bắt được (runtime flush), Mockito chỉ khóa logic set status.
+
+**Manual test PASS:** upload CV → PROCESSING → COMPLETED, xem/sửa parsed data OK.
+
+**Dọn DB:** xóa sạch cv_versions test (9 dòng, gồm cả soft-deleted) → 0.
+
+**Next:** commit US-CV-002 + 3 fix hôm nay. Rồi manual test nốt extract-jd/jd-insight/cv-jd-match (giờ CV có parsed_data + Gemini chạy) → đóng Phase 4 → Phase 5.
+
+---
+
+## 2026-06-28 — Phase 4: US-CV-002 FRONTEND HOÀN THÀNH (File 21-23) → US-CV-002 ĐÓNG
+
+**Done hôm nay (frontend view + edit parsed CV data):**
+- File 21: `cv/types.ts` + `api/cv-api.ts` + `api/queries.ts` ✅
+  - types: `CvParsedData` (+ 8 sub-type, mọi field nullable, mirror backend Template 1) + `CvVersionDetail = CvVersion + parsedData`.
+  - api: `getById` đổi trả `CvVersionDetail`; thêm `updateParsedData(id, data)` (PATCH), `reparse(id)` (POST).
+  - queries: tái dùng `useCv(id)` (đổi kiểu detail); polling thêm `PENDING` (helper `isParsing`, cần cho reparse); thêm `useUpdateParsedData(id)` (setQueryData detail), `useReparseCv(id)` (setQueryData + invalidate list).
+- File 22: `cv/components/CvParsedDataEditor.tsx` ✅ — RHF + `useFieldArray` (6 mảng object). Form model riêng `CvParsedDataForm` (toàn string) + map `toForm`/`toParsed`. **List chuỗi (technologies/achievements/skill items) edit bằng textarea, mỗi dòng 1 mục** (`splitLines`/`joinLines`) — tránh nested fieldArray. `'' → null` khi lưu. Component thuần (props onSave/isSaving/saveError). Sub-component tái dùng `SectionHeader`/`ItemCard`.
+- File 23: `cv/pages/CvDetailPage.tsx` (MỚI) + route `/cv/:id` + link từ `CvCard` ✅ — 2 cột: PDF iframe (+ link "Mở PDF" fallback) | editor. `key={cv.updatedAt}` để remount editor khi data đổi (reparse/lưu xong). Render editor cả khi FAILED (user nhập tay). Nút "Phân tích lại bằng AI".
+
+**Verify:** `tsc --noEmit` PASS · `npm run lint` 0 error (1 warning cũ `incompatible-library` ở CreateApplicationPage:124, không liên quan).
+
+**Quyết định kỹ thuật hôm nay:**
+- **List chuỗi = textarea mỗi dòng 1 mục** thay vì nested `useFieldArray` — đơn giản hơn nhiều, đổi lại có map layer toForm/toParsed.
+- **Polling thêm trạng thái PENDING** — reparse trả PENDING (async chưa kịp set PROCESSING); chỉ poll PROCESSING thì sau reparse query đứng im. Vá luôn race lúc upload.
+- **`key={cv.updatedAt}` remount editor** — RHF defaultValues chỉ đọc lúc mount; đổi key = reset form theo data mới.
+- **Editor là component thuần** — page wire hook (onSave), tách UI/data.
+- **`getById`/`useCv` tái dùng** thay vì tạo `useCvDetail` mới (CvVersionDetail là superset của CvVersion → consumer cũ không vỡ).
+
+**Next:** Manual test toàn flow AI trên browser (cần `GEMINI_API_KEY` trong `.env`): upload CV → auto AI-parse → CvDetailPage xem/sửa parsed data → lưu → reparse; + extract-jd auto-fill, jd-insight, cv-jd-match (giờ chạy được vì CV có parsed_data). Sau manual test xong → Phase 4 ĐÓNG, sang Phase 5 (Reminders).
+
+**Git:** US-CV-002 (backend File 20.x + frontend File 21-23) CHƯA commit. Backend trước đó còn có chỉnh inline parseCvAsync (gỡ 3 helper downloadPdf/extractText/aiParse) theo feedback "đừng tách method vụn".
+
+**Known issue (defer Phase 7 — xem blockers.md B-001):** Mở CvDetailPage → PDF iframe TỰ TẢI VỀ file tên UUID thay vì render inline. Do upload `resource_type: "raw"` + public_id không đuôi `.pdf` → Cloudinary trả attachment/octet-stream. Fix ở Phase 7 (đổi resource_type "image" + `.pdf` + bật PDF delivery Cloudinary, làm chung thumbnail). KHÔNG block manual test editor.
+
+---
+
+## 2026-06-27 — Phase 4: US-CV-002 BACKEND HOÀN THÀNH (File 20.1-20.5)
+
+**Done hôm nay (backend edit/sửa CV để view + edit parsed data + AI parse CV):**
+- File 20.1: `cv/dto/CvParsedData.java` ✅ — typed DTO khớp Template 1 (personalInfo+links, summary, education[], experience[], skills[], projects[], certifications[], languages[]). Nested records, MỌI field nullable + `@JsonIgnoreProperties(ignoreUnknown=true)` từng record (tolerant). Date/gpa để String.
+- File 20.2: `cv/dto/CvDetailResponse.java` ✅ — = CvVersionResponse + `parsedData`. Pattern list-item (nhẹ) vs detail (đầy đủ). List vẫn dùng CvVersionResponse.
+- File 20.3: `cv/service/CvService.java` ✅ — (a) parse pipeline thêm bước gọi Gemini Template 1 fill parsed_data; (b) **TÁCH TRANSACTION**: `parseCvAsync` thành orchestrator KHÔNG @Transactional, gọi `self.markProcessing/saveParseSuccess/saveParseFailure` (3 tx ngắn qua proxy), I/O nặng (PDF+Gemini) chạy NGOÀI tx; (c) `getDetail` (thay `getById`), `updateParsedData`, `reparse`. Inject thêm AiService/JsonResponseParser/ObjectMapper.
+- File 20.4: `cv/controller/CvController.java` ✅ — `GET /{id}`→getDetail (CvDetailResponse), `PATCH /{id}/parsed-data` (full-replace), `POST /{id}/reparse` (202).
+- File 20.5: `cv/service/CvServiceOwnershipTest.java` ✅ — getById→getDetail, thêm 2 test updateParsedData (round-trip qua `@Spy ObjectMapper` thật). **11/11 PASS**.
+
+**Verify:** `mvnw compile` PASS · `mvnw test -Dtest=CvServiceOwnershipTest` → **11/11 PASS, BUILD SUCCESS**.
+
+**Quyết định kỹ thuật hôm nay:**
+- **AI parse CV auto khi upload** (Template 1, temp 0.1, maxTokens 4000) — unblock luôn cv-jd-match (vốn đòi `parsed_data != null`, trước đó luôn null nên match luôn báo "CV chưa parse xong").
+- **AI parse lỗi → status FAILED** + `parseError` (không phải COMPLETED-data-null, tránh mâu thuẫn vì match cần parsedData). Kèm `POST /{id}/reparse` để cứu CV FAILED (cặp bắt buộc).
+- **Tách transaction** (user chốt): Gemini call NGOÀI @Transactional, tránh giữ DB connection ~vài giây — đúng nguyên tắc AiAnalysisService đã ghi. Phát hiện kèm: code cũ load Cloudinary trong tx (issue có sẵn, nay đã tách luôn vì đang sửa method này).
+- **CvService gọi shared/ai trực tiếp** (AiService+JsonResponseParser), KHÔNG qua AiAnalysisService — tránh vòng phụ thuộc cv↔ai (ai module đã import CvVersionRepository).
+- **Guard PDF blank** (ảnh scan) → FAILED rõ ràng thay vì gửi text rỗng cho Gemini.
+
+**Next (Phase 4 còn lại — Frontend US-CV-002, File 21-23):**
+- File 21: `cv/types.ts` (+ CvParsedData, CvDetailResponse tolerant) + `cv-api.ts` (getCvDetail, updateParsedData, reparseCv) + `queries.ts` (useCvDetail, useUpdateParsedData, useReparseCv).
+- File 22: `cv/components/CvParsedDataEditor.tsx` (RHF + useFieldArray, có thể tách 2 file con nếu dài).
+- File 23: `cv/pages/CvDetailPage.tsx` (MỚI: PDF embed + editor side-by-side) + route `/cv/:id` + link từ CvCard.
+
+**Lưu ý FE:** PDF preview Cloudinary `raw` URL có thể tải về thay vì render inline trong iframe → làm best-effort + nút "Mở PDF" fallback (thumbnail vẫn defer Phase 7).
+
+**Manual test defer:** test toàn bộ flow AI (extract-jd, jd-insight, cv-jd-match, CV auto-parse, edit parsed data) trên browser sau khi xong FE + có `GEMINI_API_KEY` trong `.env`.
+
+**Git:** backend US-CV-002 chưa commit.
+
+---
+
 ## 2026-06-24 — Phase 4: AI Integration — FRONTEND HOÀN THÀNH (File 14-19)
 
 **Done hôm nay (6 file frontend):**

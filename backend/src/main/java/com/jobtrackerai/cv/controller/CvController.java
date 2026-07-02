@@ -1,5 +1,7 @@
 package com.jobtrackerai.cv.controller;
 
+import com.jobtrackerai.cv.dto.CvDetailResponse;
+import com.jobtrackerai.cv.dto.CvParsedData;
 import com.jobtrackerai.cv.dto.CvVersionResponse;
 import com.jobtrackerai.cv.service.CvService;
 import com.jobtrackerai.shared.dto.ApiResponse;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -45,12 +48,30 @@ public class CvController {
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
-    // Dùng cho frontend polling parse status (mỗi 3s khi status = PROCESSING)
+    // Chi tiết 1 CV kèm parsed data — cũng dùng cho frontend polling parse status (mỗi 3s khi PROCESSING)
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<CvVersionResponse>> getById(@PathVariable Long id) {
+    public ResponseEntity<ApiResponse<CvDetailResponse>> getDetail(@PathVariable Long id) {
         Long userId = securityUtils.getCurrentUserId();
-        CvVersionResponse data = cvService.getById(userId, id);
+        CvDetailResponse data = cvService.getDetail(userId, id);
         return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    // US-CV-002: user sửa lại dữ liệu CV đã parse (thay thế toàn bộ parsed_data)
+    @PatchMapping("/{id}/parsed-data")
+    public ResponseEntity<ApiResponse<CvDetailResponse>> updateParsedData(
+            @PathVariable Long id,
+            @RequestBody CvParsedData parsedData) {
+        Long userId = securityUtils.getCurrentUserId();
+        CvDetailResponse data = cvService.updateParsedData(userId, id, parsedData);
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
+    // Chạy lại parse (vd CV bị FAILED do AI down) — 202 vì parse chạy bất đồng bộ
+    @PostMapping("/{id}/reparse")
+    public ResponseEntity<ApiResponse<CvDetailResponse>> reparse(@PathVariable Long id) {
+        Long userId = securityUtils.getCurrentUserId();
+        CvDetailResponse data = cvService.reparse(userId, id);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.success(data));
     }
 
     @PatchMapping("/{id}/default")

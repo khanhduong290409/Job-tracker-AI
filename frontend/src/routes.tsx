@@ -4,6 +4,7 @@ import { ProtectedLayout } from './components/layout/ProtectedLayout';
 import { LoginPage } from './features/auth/pages/LoginPage';
 import { CallbackPage } from './features/auth/pages/CallbackPage';
 import { CvListPage } from './features/cv/pages/CvListPage';
+import { CvDetailPage } from './features/cv/pages/CvDetailPage';
 import { ApplicationListPage } from './features/applications/pages/ApplicationListPage';
 import { CreateApplicationPage } from './features/applications/pages/CreateApplicationPage';
 import { ApplicationDetailPage } from './features/applications/pages/ApplicationDetailPage';
@@ -42,6 +43,7 @@ export function AppRoutes() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPlaceholder />} />
         <Route path="/cv" element={<CvListPage />} />
+        <Route path="/cv/:id" element={<CvDetailPage />} />
         {/* Route tĩnh /new đặt trước /:id để không bị match nhầm thành id */}
         <Route path="/applications" element={<ApplicationListPage />} />
         <Route path="/applications/new" element={<CreateApplicationPage />} />
