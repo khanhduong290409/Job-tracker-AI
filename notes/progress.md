@@ -6,6 +6,54 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-07-06 — Phase 5: CHẠY BACKEND THẬT — verify V7 migration + scheduler end-to-end PASS
+
+**Chạy backend lần đầu sau khi code xong BE Phase 5 (Docker + `mvnw spring-boot:run`) để bắt lỗi runtime (kiểu bug transaction/flush Phase 4). KẾT QUẢ: sạch, không có lỗi.**
+
+- **V7 migration apply mới OK:** DB đang ở V6 → Flyway `Migrating to version "7"` → `Successfully applied 1 migration, now at v7`. Bảng `reminders` + `notifications` tạo đủ (đúng cột, 2 partial index `idx_reminders_due`/`idx_notifications_user_unread`, check constraint `chk_reminder_type` 5 giá trị).
+- **App start OK** (~12s), health `{"status":"UP"}`. Chỉ 1 WARN lành tính (generated security password — đã biết từ Phase 0).
+- **Dispatcher end-to-end PASS (test thủ công):** chèn 1 reminder CUSTOM `sent_at=NULL`, `scheduled_at` quá khứ cho user 1 → restart app → 60s sau (initialDelay) dispatcher chạy, log `Reminders dispatched: 1`. Verify DB: (a) `reminder.sent_at` ĐƯỢC GHI (update flush đúng — **không kẹt như bug Phase 4** parseCvAsync); (b) `notifications` có 1 dòng `type=REMINDER`, title/message copy đúng, `link_url=null` (CUSTOM ko gắn app), `metadata` JSONB `{reminderId, reminderType}` đúng. `@Transactional` trong `ReminderDispatchService` gọi qua bean proxy `ReminderJobs` commit atomically cả insert notification + update reminder. Đã dọn data test (reminders/notifications về 0).
+- **Chưa test qua REST** (endpoints notification list/unread-count/markRead + reminder CRUD) — cần JWT; để lại làm chung lúc integration với FE. Service layer đã có 16/16 unit test, controller mỏng.
+
+**Lưu ý vận hành khi chạy backend:** DB thật dùng user `postgres` / db `jobtracker` / host port **5433** (không phải 5432/jobtracker như một số note cũ) — theo `.env`. Docker Desktop phải chạy trước. **KHÔNG `taskkill java.exe` giữa lúc `spring-boot:run` đang compile** → làm `target/classes` khuyết → `ClassNotFoundException: BackendApplication` khi chạy lại; fix bằng `mvnw clean compile` rồi chạy lại.
+
+**Next:** Frontend File 12 — `features/notifications/` types + api + queries (list, unread-count polling, markRead, markAllRead). Rồi File 13-15. Commit backend Phase 5 (có thể commit trước hoặc sau FE).
+
+---
+
+## 2026-07-04 — Phase 5: Reminders & Notifications — BẮT ĐẦU
+
+**Scope chốt (2 câu hỏi user chọn Recommended):**
+- Reminder types: `CUSTOM` (tay) + `FOLLOW_UP_AFTER_APPLY` (7d còn APPLIED) + `STATUS_STALE` (14d không đổi status). Defer `INTERVIEW_REMINDER` + `TAKE_HOME_DEADLINE`.
+- Channel: **IN_APP only**. Email defer Phase 6, push out-of-scope. Cột `channels` JSONB giữ sẵn.
+- Delivery: polling (D-006), không WebSocket. Notification preferences (US-NOTIF-005) defer.
+
+**Kiến trúc:** 2 module mới `reminder/` + `notification/`. `ReminderJobs` scheduled 2 việc: (1) generator (daily 08:00 cron, quét applications sinh reminder auto, dedup 1/loại/app chưa dismissed, guard terminal status) + (2) dispatcher (fixedDelay 15', reminder tới hạn → NotificationService.create → set sent_at). Reminder module inject `ApplicationRepository` read-only (precedent: ai module import CvVersionRepository). `@EnableScheduling` qua shared/config. KHÔNG trang /reminders riêng (user chốt bỏ) — quản lý reminder trong ApplicationDetailPage + bell notification.
+
+**Plan file (15 file):**
+- BE (11 file, XONG ✅): (1) V7 migration · (2) ReminderType+Reminder entity · (3) ReminderRepository · (4) reminder DTOs · (5) ReminderService (CRUD custom + ownership) · (6) Notification entity+repo+dto · (7) NotificationService · (8) ReminderDispatchService (generator+dispatcher) · (9) SchedulingConfig + ReminderJobs · (10) 2 controller · (11) 3 test class
+- FE (4 file, chưa làm): (12) notifications types+api+queries · (13) NotificationBell → ProtectedLayout · (14) reminders types+api+queries · (15) reminder section trong ApplicationDetailPage
+
+**BACKEND HOÀN THÀNH (File 1-11) — compile PASS, test 16/16 PASS.**
+- 2 module mới `reminder/` + `notification/`. `ReminderJobs` (@Scheduled): generator cron `0 0 8 * * *` (FOLLOW_UP + STATUS_STALE, dedup once-per-app-per-type, terminal guard) + dispatcher `fixedDelay 900_000ms` (initialDelay 60s) bắn reminder due → NotificationService.create → set sent_at.
+- Thêm 2 query vào `ApplicationRepository`: `findByStatusAndAppliedDateLessThanEqual` (FOLLOW_UP) + `findStaleApplications` (STATUS_STALE, NOT IN terminal). @SQLRestriction tự lọc soft-deleted.
+- `@EnableScheduling` qua `shared/config/SchedulingConfig`.
+- Endpoint: `GET/POST /api/v1/reminders`, `PUT /reminders/{id}/dismiss`, `DELETE /reminders/{id}` · `GET /notifications` (unreadOnly+paginate), `GET /notifications/unread-count` (thêm ngoài contract, cho badge poll), `PUT /notifications/{id}/read`, `PUT /notifications/read-all`.
+- Test: ReminderServiceOwnershipTest 7 + NotificationServiceOwnershipTest 4 + ReminderDispatchServiceTest 5 = 16/16 PASS.
+
+**Quyết định kỹ thuật cần nhớ:**
+- Dedup reminder auto = "once per app per type ever" (`existsByApplicationIdAndReminderType`, KHÔNG kèm DismissedFalse) — tránh spam khi user dismiss. Trade-off: STATUS_STALE không nhắc lại lần 2 sau 14 ngày nữa. Chấp nhận cho demo.
+- STATUS_STALE dùng `updatedAt` làm proxy cho "không đổi status" — thực chất là "không đụng gì tới đơn 14 ngày" (updatedAt reset khi sửa bất kỳ field). Nếu cần chính xác theo status → soi status_history.changed_at.
+- Cột `channels` JSONB KHÔNG map trong Reminder entity (Phase 5 chỉ IN_APP, DB default lo) — Phase 6 map khi thêm EMAIL.
+- Dispatcher 1 transaction cho cả batch — 1 reminder lỗi → cả batch rollback. Nếu cần cô lập lỗi → tách tx per-reminder (self-injection).
+- NotificationType enum 1 value REMINDER (Phase 5 mọi notif từ reminder). metadata serialize fail-soft (log + null, không chặn tạo notif).
+
+**CHƯA làm:** (a) chạy backend thật verify migration V7 apply + scheduler khởi động (đề xuất làm trước FE, bắt lỗi runtime kiểu transaction/flush như Phase 4). (b) Frontend File 12-15. (c) commit.
+
+**Next:** File 12 — `features/notifications/` types + api + queries (list, unread-count polling, markRead, markAllRead).
+
+---
+
 ## 2026-07-02 (2) — Phase 4: Feature GẮN CV vào application (bật cv-jd-match) + manual test AI flow
 
 **Bối cảnh:** manual test phát hiện `cv-jd-match` không test được qua UI — application không có cách gắn CV (backend `create` nhận `cvVersionId` nhưng form không có ô chọn; `update` không có field này). Làm feature gắn CV NGAY trước Phase 5 (user chốt, không dồn Phase 5).

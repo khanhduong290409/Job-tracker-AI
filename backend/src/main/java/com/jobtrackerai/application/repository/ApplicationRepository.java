@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +18,22 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     // Ownership-safe lookup — userId trong query: sai userId → 404, không lộ "resource tồn tại nhưng không phải của bạn"
     Optional<Application> findByIdAndUserIdAndDeletedAtIsNull(Long id, Long userId);
+
+    // ── Dùng bởi ReminderDispatchService generator (quét toàn hệ thống, không theo user) ──
+    // Soft-deleted tự loại nhờ @SQLRestriction("deleted_at IS NULL") trên entity.
+
+    // FOLLOW_UP: đơn còn APPLIED và đã nộp quá N ngày. appliedDate null tự loại (không match <=).
+    List<Application> findByStatusAndAppliedDateLessThanEqual(ApplicationStatus status, LocalDate appliedDate);
+
+    // STATUS_STALE: đơn chưa ở trạng thái terminal và không có thay đổi nào quá threshold.
+    @Query("""
+            SELECT a FROM Application a
+            WHERE a.status NOT IN :terminalStatuses
+              AND a.updatedAt <= :threshold
+            """)
+    List<Application> findStaleApplications(
+            @Param("terminalStatuses") List<ApplicationStatus> terminalStatuses,
+            @Param("threshold") Instant threshold);
 
     // Multi-status filter: service luôn pass List (empty list = không filter theo status)
     // SpEL #statuses.isEmpty() = true → bỏ qua điều kiện status, trả về tất cả
