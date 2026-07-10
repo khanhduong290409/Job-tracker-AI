@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { AiMatchCard } from '@/features/ai/components/AiMatchCard';
 import { JdInsightSection } from '@/features/ai/components/JdInsightSection';
 import { useCvList } from '@/features/cv/api/queries';
+import { ReminderSection } from '@/features/reminders/components/ReminderSection';
 import type { ApplicationStatus } from '@/types/common';
 import {
   useAddTimelineEvent,
@@ -236,6 +237,9 @@ export function ApplicationDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Nhắc nhở */}
+      <ReminderSection applicationId={appId} />
 
       {/* Timeline */}
       <div className="mt-8">

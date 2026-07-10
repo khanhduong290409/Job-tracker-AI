@@ -9,8 +9,8 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
-/* 1 reminder có thể sinh ra NHIỀU notification, qua nhiều kênh — quan hệ 1-nhiều, không phải 1-1:
-
+/* 
+1 reminder có thể sinh ra NHIỀU notification, qua nhiều kênh — quan hệ 1-nhiều, không phải 1-1:
 Reminder "phỏng vấn ngày mai" (nếu Phase 6 làm) → bắn 1 notification lúc 1 ngày trước + 1 notification nữa lúc 1 giờ trước → 2 notification từ 1 reminder.
 Cùng 1 reminder tới hạn có thể bắn in-app (Phase 5) + email (Phase 6) → 2 bản ghi kênh khác nhau.
  */

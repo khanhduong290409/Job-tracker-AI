@@ -61,7 +61,7 @@ public class ReminderService {
     @Transactional
     public ReminderResponse dismiss(Long userId, Long id) {
         Reminder reminder = findOwnedOrThrow(userId, id);
-        reminder.setDismissed(true);
+        reminder.setDismissed(true);// = true tức là user chủ động bỏ qua thông báo
         reminderRepository.save(reminder);
         log.info("Reminder dismissed: userId={}, reminderId={}", userId, id);
         return toResponse(reminder);

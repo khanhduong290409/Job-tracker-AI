@@ -6,6 +6,38 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-07-11 — Phase 5: đọc code + manual test xong → commit FE → ĐÓNG (code)
+
+**User đã đọc hết code Phase 5 (BE+FE) + manual test phần reminder trên UI.** Trong lúc đọc có thêm comment tiếng Việt học tập vào 4 file backend (Notification.java, NotificationService.java, ReminderDispatchService.java, ReminderService.java) — **comment-only, không đổi logic** — gộp luôn vào commit FE.
+
+**Làm rõ 1 hiểu nhầm (đáng ghi):** "gửi notification" KHÔNG thiếu. Mắt xích gửi = `ReminderDispatchService.dispatchDueReminders()` (scheduled fixedDelay 15', initialDelay 60s): quét reminder due (`scheduled_at <= now`, `sent_at IS NULL`, chưa dismiss) → `NotificationService.create()` → set `sent_at`. Đã verify end-to-end qua psql hôm 07-06 (log `Reminders dispatched: 1`). Lý do chưa "thấy" trên browser: reminder tạo qua UI luôn @Future → dispatcher chưa đụng. Muốn quan sát phải backdate reminder trong DB + restart backend (60s initialDelay), hoặc chèn thẳng notification vào DB để test riêng chuông FE.
+
+**Quyết định:** test end-to-end đầy đủ (dispatcher → notification → badge) + retest kỹ **gộp làm khi Phase 6 (Email) xong** — Phase 6 cùng đụng notification flow (thêm kênh EMAIL), test 1 lượt cho gọn thay vì test 2 lần.
+
+**Commit:** FE Phase 5 (File 12-15: `features/notifications/` + `features/reminders/` + sửa ProtectedLayout + ApplicationDetailPage) + 4 file backend comment + notes.
+
+**Next: Phase 6 — Email Integration.** Đọc `docs/08-user-stories.md` epic Email + `docs/04-ai-integration.md` (nếu email dùng template) trước khi plan. Cột `channels` JSONB trong reminders đã giữ sẵn cho EMAIL; NotificationType/kênh mở rộng từ đây.
+
+---
+
+## 2026-07-07 — Phase 5: FRONTEND HOÀN THÀNH (File 12-15) + commit backend
+
+**Backend Phase 5 đã commit** `9d1ad17` "Phase 5 (backend) - Reminders & Notifications" (23 file, kèm notes). Lưu ý nhỏ: commit đầu `c9e0797` lỡ dính ký tự `@` vào message do gõ nhầm here-string PowerShell (`@'...'@`) trong Bash tool → đã `--amend` bằng heredoc `<<'EOF'` thành `9d1ad17`. Bài học: Bash tool dùng heredoc, PowerShell tool mới dùng `@'...'@`.
+
+**Frontend Phase 5 (File 12-15) XONG — tsc + eslint + `npm run build` PASS (1976 modules, 0 lỗi).**
+- **File 12** `features/notifications/` — types (`Notification`, `NotificationListParams`, `type` để string tolerant) + api (list paginated, unreadCount, markRead, markAllRead) + queries (`useNotifications`, `useUnreadCount` poll 30s vô điều kiện, 2 mutation invalidate `['notifications']`).
+- **File 13** `NotificationBell.tsx` + nhúng `ProtectedLayout` — chuông + badge unread (cap "9+") + dropdown 10 notif gần nhất, click item → markRead + `navigate(linkUrl)`. Dropdown tự chế bằng overlay `fixed inset-0` click-outside (không thêm dep popover). Thêm `<header>` sticky vào ProtectedLayout (trước đó chỉ có `<Outlet/>`, chưa có navbar).
+- **File 14** `features/reminders/` — types (`Reminder`, `CreateReminderRequest` KHÔNG có reminderType — backend gán CUSTOM, `REMINDER_TYPE_LABELS` + `getReminderTypeLabel` fallback) + api (list trả **mảng thuần** không paginate, create/dismiss/delete) + queries (`useReminders`, 3 mutation).
+- **File 15** `ReminderSection.tsx` (component riêng, nhận `applicationId`) + nhúng `ApplicationDetailPage` sau khối "Đổi trạng thái" — form useState tạo CUSTOM (title/scheduledAt datetime-local/description) + list + nút Tắt (dismiss) / Xóa (delete confirm). `new Date(local).toISOString()` gửi backend, `min=now` chặn quá khứ (2 lớp với backend @Future).
+
+**Sửa giữa chừng (feedback user):** File 13 ban đầu mình tự vẽ inline SVG bell vì tưởng project không có icon lib (chỉ check thư mục `components/ui/`, thấy dùng emoji). User chỉ ra **`lucide-react ^1.16.0` đã có sẵn** (CallbackPage đã dùng `Loader2`) → đổi sang `<Bell/>` lucide. **Bài học ghi nhớ: trước khi tự chế UI primitive, grep `package.json` + tìm chỗ đã dùng, đừng suy từ mỗi thư mục `ui/`.**
+
+**CHƯA làm:** (a) manual test trên browser (chuông poll/đọc/mark-all, tạo/tắt/xóa reminder, badge cập nhật) — cần backend chạy + login. (b) commit FE Phase 5 + update handoff/progress (đang ghi). (c) Nhắc kiểm tra `line-clamp-2` ở NotificationBell hiển thị đúng (cần Tailwind ≥3.3).
+
+**Next (session sau):** manual test FE Phase 5 trên browser → fix nếu có → commit FE → Phase 5 ĐÓNG → Phase 6 (Email Integration).
+
+---
+
 ## 2026-07-06 — Phase 5: CHẠY BACKEND THẬT — verify V7 migration + scheduler end-to-end PASS
 
 **Chạy backend lần đầu sau khi code xong BE Phase 5 (Docker + `mvnw spring-boot:run`) để bắt lỗi runtime (kiểu bug transaction/flush Phase 4). KẾT QUẢ: sạch, không có lỗi.**

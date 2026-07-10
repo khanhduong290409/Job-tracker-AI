@@ -108,8 +108,9 @@ public class ReminderDispatchService {
 
     // ── Dispatcher ────────────────────────────────────────────────────────────
 
+    // đính chính là với mỗi reminder thì chỉ sinh ra 1 notification thôi
     @Transactional
-    public int dispatchDueReminders() {
+     public int dispatchDueReminders() {
         List<Reminder> due = reminderRepository.findDue(Instant.now());
 
         for (Reminder r : due) {
@@ -120,6 +121,7 @@ public class ReminderDispatchService {
                     r.getDescription(),
                     r.getApplicationId() != null ? "/applications/" + r.getApplicationId() : null,
                     buildMetadata(r));
+
             r.setSentAt(Instant.now());
             reminderRepository.save(r);
         }

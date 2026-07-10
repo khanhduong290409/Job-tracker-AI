@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../features/auth/store/auth-store';
+import { NotificationBell } from '../../features/notifications/components/NotificationBell';
 
 /**
  * Layout cho route cần authenticated. Skeleton Phase 0:
@@ -20,6 +21,10 @@ export function ProtectedLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Thanh header chung: chuông thông báo canh phải. Sticky để luôn thấy khi cuộn. */}
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-end border-b border-gray-200 bg-white px-4">
+        <NotificationBell />
+      </header>
       <Outlet />
     </div>
   );

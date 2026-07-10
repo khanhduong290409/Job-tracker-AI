@@ -51,7 +51,8 @@ public class NotificationService {
         Page<Notification> page = unreadOnly
                 ? notificationRepository.findByUserIdAndReadFalseOrderByCreatedAtDesc(userId, pageable)
                 : notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
-        return page.map(this::toResponse);
+        return page.map(this::toResponse);// tương đương page.map(n -> this.toResponse(n));
+
     }
 
     public long unreadCount(Long userId) {
