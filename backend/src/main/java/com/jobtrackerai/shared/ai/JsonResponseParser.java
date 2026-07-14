@@ -23,7 +23,7 @@ public class JsonResponseParser {
         }
     }
 
-    private String extractJson(String raw) {
+    private String extractJson(String raw) {//trong learn AI dòng 301-329 có giải thích ngắn gọn hơn về method này
         if (raw == null || raw.isBlank()) {
             throw new AiException("AI returned empty response");
         }

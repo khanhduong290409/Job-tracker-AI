@@ -38,6 +38,20 @@ spring:
       port: ${REDIS_PORT:6379}
       timeout: 2000ms
 
+  # SMTP — Spring Boot tự tạo JavaMailSender từ các key này (spring-boot-starter-mail).
+  # Dev: dùng Mailtrap (inbox ảo, không gửi ra ngoài thật). Prod: SMTP thật.
+  mail:
+    host: ${MAIL_HOST:sandbox.smtp.mailtrap.io}
+    port: ${MAIL_PORT:2525} #${TÊN:mặc_định} = lấy biến môi trường, không có thì dùng giá trị mặc định. 
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
   servlet:
     multipart:
       max-file-size: 10MB       # max single file (attachments)
@@ -79,6 +93,9 @@ app:
     model: ${GEMINI_MODEL:gemini-2.0-flash}
   encryption:
     key: ${ENCRYPTION_KEY:}
+  mail:
+    # Địa chỉ hiển thị ở dòng "From" của email hệ thống gửi đi.
+    from: ${MAIL_FROM:Job Tracker AI <no-reply@jobtracker.ai>}
   storage:
     local-path: ${APP_STORAGE_LOCAL_PATH:${user.home}/job-tracker-uploads}
     cloudinary:

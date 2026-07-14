@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 
@@ -32,6 +34,13 @@ public class User {
 
     @Column(name = "gmail_connected", nullable = false)
     private boolean gmailConnected = false;
+
+    // Khởi tạo default để user MỚI insert luôn có JSON hợp lệ (cột NOT NULL) —
+    // Hibernate include cột này trong INSERT, null sẽ vi phạm NOT NULL.
+    // User cũ đọc từ DB thì Hibernate ghi đè bằng giá trị đã lưu.
+    @JdbcTypeCode(SqlTypes.JSON)//biên dịch object thành json lúc lưu xuống db
+    @Column(name = "notification_preferences", columnDefinition = "jsonb", nullable = false)//quyết định kiểu cột này là jsonb
+    private NotificationPreferences notificationPreferences = NotificationPreferences.defaults();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

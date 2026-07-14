@@ -8,6 +8,10 @@ import com.jobtrackerai.notification.service.NotificationService;
 import com.jobtrackerai.reminder.entity.Reminder;
 import com.jobtrackerai.reminder.entity.ReminderType;
 import com.jobtrackerai.reminder.repository.ReminderRepository;
+import com.jobtrackerai.shared.mail.MailService;
+import com.jobtrackerai.user.entity.NotificationPreferences;
+import com.jobtrackerai.user.entity.User;
+import com.jobtrackerai.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -17,13 +21,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,6 +39,8 @@ class ReminderDispatchServiceTest {
     @Mock private ReminderRepository reminderRepository;
     @Mock private ApplicationRepository applicationRepository;
     @Mock private NotificationService notificationService;
+    @Mock private UserRepository userRepository;
+    @Mock private MailService mailService;
 
     @InjectMocks private ReminderDispatchService dispatchService;
 
@@ -98,8 +107,9 @@ class ReminderDispatchServiceTest {
     @Test
     void dispatch_dueReminder_createsNotificationAndSetsSentAt() {
         Reminder reminder = buildReminder(5L, 1L, 12L); // gắn application 12
-
         when(reminderRepository.findDue(any())).thenReturn(List.of(reminder));
+        when(userRepository.findByIdAndDeletedAtIsNull(1L))
+                .thenReturn(Optional.of(buildUser(1L, true, true))); // bật cả 2 kênh
 
         int sent = dispatchService.dispatchDueReminders();
 
@@ -109,20 +119,50 @@ class ReminderDispatchServiceTest {
                 eq(1L), eq(NotificationType.REMINDER),
                 eq(reminder.getTitle()), eq(reminder.getDescription()),
                 eq("/applications/12"), any());
+        verify(mailService).send(eq("user1@example.com"), eq(reminder.getTitle()), anyString());
         verify(reminderRepository).save(reminder);
     }
 
     @Test
     void dispatch_customReminderWithoutApplication_nullLinkUrl() {
         Reminder reminder = buildReminder(6L, 1L, null); // độc lập, không app
-
         when(reminderRepository.findDue(any())).thenReturn(List.of(reminder));
+        when(userRepository.findByIdAndDeletedAtIsNull(1L))
+                .thenReturn(Optional.of(buildUser(1L, true, true)));
 
         dispatchService.dispatchDueReminders();
 
         verify(notificationService).create(
                 eq(1L), eq(NotificationType.REMINDER),
                 any(), any(), isNull(), any());
+    }
+
+    @Test
+    void dispatch_emailPrefOff_skipsEmailButStillNotifies() {
+        Reminder reminder = buildReminder(7L, 1L, 12L);
+        when(reminderRepository.findDue(any())).thenReturn(List.of(reminder));
+        when(userRepository.findByIdAndDeletedAtIsNull(1L))
+                .thenReturn(Optional.of(buildUser(1L, true, false))); // tắt email
+
+        dispatchService.dispatchDueReminders();
+
+        verify(notificationService).create(eq(1L), any(), any(), any(), any(), any());
+        verify(mailService, never()).send(any(), any(), any());
+        assertThat(reminder.getSentAt()).isNotNull(); // vẫn đánh dấu đã bắn
+    }
+
+    @Test
+    void dispatch_userDeleted_setsSentAtAndSkipsBothChannels() {
+        Reminder reminder = buildReminder(8L, 1L, 12L);
+        when(reminderRepository.findDue(any())).thenReturn(List.of(reminder));
+        when(userRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.empty()); // user xóa mềm
+
+        dispatchService.dispatchDueReminders();
+
+        verifyNoInteractions(notificationService);
+        verify(mailService, never()).send(any(), any(), any());
+        assertThat(reminder.getSentAt()).isNotNull(); // không kẹt due dù bỏ qua 2 kênh
+        verify(reminderRepository).save(reminder);
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
@@ -147,5 +187,13 @@ class ReminderDispatchServiceTest {
         r.setDescription("nội dung nhắc");
         r.setScheduledAt(Instant.now());
         return r;
+    }
+
+    private User buildUser(Long id, boolean inApp, boolean email) {
+        User user = new User();
+        user.setId(id);
+        user.setEmail("user" + id + "@example.com");
+        user.setNotificationPreferences(new NotificationPreferences(inApp, email));
+        return user;
     }
 }

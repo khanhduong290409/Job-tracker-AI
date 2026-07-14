@@ -14,10 +14,10 @@ function formatDateTime(iso: string): string {
 
 // Giá trị min cho <input type="datetime-local"> = thời điểm hiện tại (local, format YYYY-MM-DDTHH:mm).
 function nowLocalInputValue(): string {
-  const d = new Date();//getMonth() trả về tháng bắt đầu từ 0
+  const d = new Date();//d là thời điểm hiện tại
   const pad = (n: number) => String(n).padStart(2, '0');//đảm bảo chuỗi dài ít nhất 2 kí tự, nếu thiếu thì thêm 0 và trước kí tự ví dụ 1 -> 01
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+}//getMonth() trả về tháng bắt đầu từ 0
 
 interface ReminderSectionProps {
   applicationId: number;

@@ -6,6 +6,90 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-07-14 (2) — Phase 6: TEST CUỐI PASS → PHASE 6 ĐÓNG
+
+**User đã đăng ký Mailtrap (điền `MAIL_USERNAME`/`MAIL_PASSWORD` vào `.env`) + chạy test cuối trên browser → OK.** Chốt Phase 6 hoàn thành cả code lẫn test.
+
+**Ghi chú làm rõ trong lúc test (đáng nhớ):**
+- **Nút "Mở trong ứng dụng mail" (`mailto:`) bấm không thấy gì** = KHÔNG phải bug. `mailto:` mở app mail MẶC ĐỊNH của OS; máy user (Windows, dùng Edge) chưa có mail client desktop + trình duyệt chưa đăng ký Gmail làm protocol handler → im. Cách dùng thực tế: (1) đăng ký Gmail làm handler trong Edge/Chrome (icon ◆◆ ở address bar khi đang MỞ Gmail), hoặc (2) dùng nút **Copy nội dung** rồi dán vào Gmail. Chức năng chính (AI soạn nháp) chạy tốt. Gửi thẳng qua Gmail = option 2 (Gmail API) đã defer.
+- **Timing dispatcher** (giải thích lại cho user, xem `ReminderJobs.java:34`): `initialDelay=60s` + `fixedDelay=15p`. Từ lúc bật app chỉ **~60 giây** là quét lần đầu (KHÔNG phải 15 phút); 15 phút là chu kỳ lặp giữa các lần sau. `fixedDelay` đếm từ lúc job trước *kết thúc* (không chồng lần). Test nhanh = backdate reminder due → restart → chờ ~60s.
+
+**Chưa commit.** **Next: commit toàn bộ Phase 6 (BE File 1-13 + FE File 14-17 + notes) → sang Phase 7 (Analytics + Polish + Deploy).**
+
+---
+
+## 2026-07-14 — Phase 6: FE File 15-17 XONG → CODE PHASE 6 HOÀN THÀNH (chỉ còn test cuối)
+
+**Làm nốt 3 file FE cuối, `tsc` + `eslint` (0 error) + `npm run build` (built 3.17s) đều PASS.**
+
+- **FE File 15** `features/email/components/EmailDraftSection.tsx` — nhúng `ApplicationDetailPage` (sau `ReminderSection`). Chọn template (union literal `EmailTemplateKey`) + custom instructions (maxLength 500 khớp `@Size`) → bấm **Soạn nháp** (`useDraftEmail` mutation) → **seed local state từ `onSuccess`** (subject/body/toEmail/tone) để user **sửa được** → nút **Copy nội dung** (`navigator.clipboard`, try/catch fail-soft) + **Mở trong ứng dụng mail** (`Button asChild` bọc `<a mailto:>`, chỉ encode subject/body, để nguyên địa chỉ email). `toEmail` là **input sửa được** (đơn chưa gắn HR → null → user tự nhập) = khe nối cho Gmail-send tương lai. `draftErrorMessage` phân biệt 503 (AI down) vs message backend. Đổi nhãn nút "Soạn nháp"→"Soạn lại" khi đã có nháp.
+- **FE File 16** module `features/settings/` (types + api + queries): `types.ts` mirror `UserProfileResponse` (`UserProfile` + `NotificationPreferences`; `NotificationPreferencesRequest` = alias của `NotificationPreferences` vì full-replace cùng shape) · `settings-api.ts` `getProfile` (GET /users/me) + `updateNotificationPreferences` (PUT) · `queries.ts` `useProfile` (query key `['profile']` không tham số — luôn là "me") + `useUpdateNotificationPreferences` (mutation, **`setQueryData` ghi thẳng cache** vì PUT trả full profile, khỏi refetch — pattern như `useUpdateParsedData`).
+- **FE File 17** `features/settings/pages/SettingsPage.tsx` + route `/settings` (trong ProtectedLayout) + **link header** (gear icon `lucide-react` `Settings` cạnh chuông trong `ProtectedLayout`). 2 công tắc in-app/email: **toggle bám server state** (`checked={prefs.inApp}`, không local state) → bật/tắt **lưu ngay** gửi PUT cả 2 field. `Switch` tự chế `<button role="switch" aria-checked>` (không thêm dep). Không optimistic — pending thì disable + "Đang lưu...", lỗi thì cache giữ nguyên (toggle tự về đúng).
+
+**PHASE 6 CODE HOÀN THÀNH** — BE File 1-13 + FE File 14-17. **Chưa commit gì.**
+
+**CÒN LẠI DUY NHẤT — test cuối** (chờ user đăng ký Mailtrap): cần **Docker up** + **Mailtrap creds** (`MAIL_USERNAME/PASSWORD` trong `.env`) + **`GEMINI_API_KEY`**. Backdate 1 reminder due → restart backend → verify (a) notification (chuông) + (b) email (Mailtrap) đúng theo preferences · manual test draft AI (soạn email HR) · toggle Settings on/off · `contextLoads` cũng xanh khi Docker up.
+
+**Next session:** user tự chạy test cuối sau khi có Mailtrap creds. Nếu PASS → commit Phase 6 → ĐÓNG → Phase 7 (Analytics + Polish + Deploy).
+
+---
+
+## 2026-07-13 — Phase 6: BACKEND HOÀN THÀNH (File 1-13, verify PASS) + FE File 14
+
+**Verify File 1-8 (session trước để nợ):** `mvnw clean compile` → **BUILD SUCCESS** (108 files) — dep `spring-boot-starter-mail` resolve OK, `User.notificationPreferences` JSONB mapping hợp lệ. Chạy riêng `ReminderDispatchServiceTest` xác nhận đúng nợ đã ghi: 2/5 ĐỎ do NPE `userRepository` null (dispatcher inject thêm mà test chưa stub) — không phải lỗi lạ.
+
+**BE File 9-13 (mảng C — AI soạn nháp email gửi HR):**
+- **File 9** `email/dto/` — `EmailDraftRequest{EmailTemplateKey templateKey (@NotNull), String customInstructions (@Size max 500)}` + `EmailDraftResponse{subject, body, tone, toEmail}` (`@JsonIgnoreProperties`). Quyết định: templateKey để **enum** (input client → validate chặt, giá trị lạ = 400); tone/toEmail để **String** (output AI tolerant). `toEmail` KHÔNG từ AI — service điền sau (khe nối cho Gmail-send tương lai).
+- **File 10** `email/entity/EmailTemplateKey` — enum 3 giá trị FOLLOW_UP_AFTER_APPLY / THANK_YOU_AFTER_INTERVIEW / STATUS_INQUIRY, mỗi giá trị kèm `description` (tiếng Anh) nhét vào prompt. Enum có field+constructor. KHÔNG lưu DB (draft stateless).
+- **File 11** `email/service/EmailDraftService` — `draft(appId, userId, request)`: ownership `findByIdAndUserIdAndDeletedAtIsNull` (404 nếu không sở hữu, chặn trước khi tốn quota) + load User (tên ký email) → `buildPrompt` Template 5 (temp 0.6, maxTokens 1000; helper `nvl`→"none", `daysSinceApply`) → `AiService.generate` + `jsonParser.parse(EmailDraftResponse)` → tạo record mới điền `toEmail` từ `contactPerson.email`. **Stateless: KHÔNG lưu DB, KHÔNG cache, KHÔNG @Transactional** (khác AiAnalysisService — draft user sinh nhiều lần rồi sửa, cache phản tác dụng).
+- **File 12** `email/controller/EmailController` — `POST /api/v1/applications/{id}/emails/draft`, pattern y hệt AiController (SecurityUtils lấy userId, @Valid body, ApiResponse bọc). POST vì có body + sinh nội dung tốn AI.
+- **File 13** `EmailDraftServiceTest` (3: fill toEmail từ contact / no-contact→null / not-owned→404 + verifyNoInteractions AiService; dùng **JsonResponseParser thật** để test parse+fill) + **FIX `ReminderDispatchServiceTest`**: thêm `@Mock UserRepository`+`MailService`, stub `findByIdAndDeletedAtIsNull` trả user có prefs; thêm 2 case: `emailPrefOff` (tắt email vẫn notify + set sentAt), `userDeleted` (bỏ cả 2 kênh nhưng **vẫn set sentAt** tránh kẹt due). 5→7 test.
+
+**Verify BE:** `mvnw clean compile` PASS · `mvnw test -Dtest=EmailDraftServiceTest,ReminderDispatchServiceTest` → **10/10 PASS** · full suite **75/76** — 1 đỏ duy nhất `BackendApplicationTests.contextLoads` do `Connection to localhost:5433 refused` (Docker/Postgres chưa bật, integration test cần DB thật) — **KHÔNG phải regression** (stacktrace dừng ở flywayInitializer/entityManagerFactory, không đụng code Phase 6). Sẽ xanh khi `docker compose up -d`.
+
+**FE File 14** (`features/email/` types+api+queries — `tsc --noEmit` PASS):
+- `types.ts` — `EmailTemplateKey` **union literal** (input client → type-safe, khác field enum-like AI để string) + `EMAIL_TEMPLATE_LABELS` (`Record<EmailTemplateKey,string>` nhãn VN, ép khai báo đủ) + `EmailDraftRequest` (customInstructions optional) + `EmailDraftResponse` (mọi field `| null` bám backend).
+- `api/email-api.ts` — `emailApi.draft(appId, body)` → POST, unwrap `.data.data!`.
+- `api/queries.ts` — `useDraftEmail(appId)` **mutation** (hành động sinh nội dung mỗi lần bấm, backend stateless nên không cache/invalidate — khác useJdInsight là query vì backend cache theo hash).
+
+**CÒN LẠI Phase 6:**
+- FE **File 15** `EmailDraftSection.tsx` nhúng `ApplicationDetailPage` (chọn template + custom instructions → bấm soạn → form sửa subject/body + nút Copy + link `mailto:{toEmail}?subject=&body=`; toEmail null → user tự điền) · **File 16** `features/settings/` (hoặc user) types+api+queries preferences (GET /users/me, PUT /users/me/notification-preferences) · **File 17** `SettingsPage.tsx` + route `/settings` + link header (toggle in-app/email).
+- **Test cuối** (gộp phần defer Phase 5): cần **Docker up** + **Mailtrap creds** (`MAIL_USERNAME/PASSWORD` trong `.env`). Backdate 1 reminder due trong DB → restart backend → xác nhận dispatcher (a) tạo notification (chuông) + (b) gửi email (xem Mailtrap) đúng theo preferences. + manual test draft AI (cần GEMINI_API_KEY) + toggle Settings. `contextLoads` cũng xanh khi Docker up.
+
+**Chưa commit gì** (BE File 1-13 + FE File 14). **Next session: FE File 15.**
+
+---
+
+## 2026-07-12 — Phase 6: Email Integration (scope 1b) — BẮT ĐẦU, backend File 1-8 xong (CHƯA compile/test)
+
+**Chốt scope sau khi tư vấn kỹ (user phân vân → mình phân tích trade-off):** chọn **1b — Lean + SMTP**. Gồm 3 mảng: (A) notification preferences · (B) kênh EMAIL cho reminder qua SMTP · (C) AI soạn nháp email follow-up cho HR (chỉ gen text, user tự copy/`mailto:` gửi — KHÔNG gửi server-side). **KHÔNG làm Gmail API** (đọc/sync/send-as-user).
+
+**Vì sao KHÔNG option 2/3 (Gmail API):** `gmail.readonly` (đọc/sync) là *restricted scope* cần Google security assessment — nặng, ít giá trị học. `gmail.send` (gửi as-user) là *sensitive scope*, dùng được ở Testing mode (không cần domain/verify) nhưng cần luồng OAuth thứ 2 (offline access + refresh token) + AesEncryptor (project CHƯA có) + build MIME. Quyết định: **defer option 2 sang SAU khi xong project** (nếu dư thời gian). Đã xác nhận với user: thêm option 2 sau **gần như thuần additive** — cột `users.gmail_refresh_token`/`gmail_connected_at` docs có sẵn (dù migration thật chưa có), luồng login KHÔNG bị đụng, Send chỉ là endpoint mới ăn theo draft. 3 "khe nối" phải giữ NGAY ở 1b: (1) draft response có `toEmail`, (2) UI draft là form sửa được, (3) code trong module `email/`.
+
+**Dependency (đã hỏi + user OK):** thêm `spring-boot-starter-mail`.
+
+**Backend File 1-8 XONG (chưa compile — File 2 thêm dep, cần Maven reload/download; chưa chạy `mvnw`):**
+- **File 1** `V8__add_notification_preferences.sql` — ALTER `users` ADD `notification_preferences JSONB NOT NULL DEFAULT '{"inApp":true,"email":true}'`. (DB thật KHÔNG có `notification_preferences`/`gmail_refresh_token` như docs schema — migration lệch docs từ trước; users thật chỉ có `gmail_connected` boolean.)
+- **File 2** `pom.xml` (+`spring-boot-starter-mail`) + `application.yaml` (`spring.mail.*` host/port/user/pass, default **Mailtrap** `sandbox.smtp.mailtrap.io:2525` + starttls; `app.mail.from`) + `.env.example` (section MAIL_* + hướng dẫn Mailtrap).
+- **File 3** `shared/mail/MailService.java` — wrapper `JavaMailSender`, `@Async("emailTaskExecutor")` (bean có sẵn từ Phase 0) `send(to,subject,body)` dùng `SimpleMailMessage`, **fail-soft** (catch `MailException`, log, không throw) + guard `to` rỗng. `from` đọc bằng `@Value("${app.mail.from}")`, constructor thủ công.
+- **File 4** `user/entity/NotificationPreferences.java` (record `{boolean inApp, boolean email}` + `defaults()`=(true,true) + `@JsonIgnoreProperties`) + sửa `User.java` thêm field `@JdbcTypeCode(SqlTypes.JSON)` `columnDefinition="jsonb"` **khởi tạo = defaults()** (tránh INSERT null vi phạm NOT NULL — Hibernate include cột dù field null).
+- **File 5** `user/dto/` — `UserProfileResponse` (tách khỏi auth `UserResponse` để không đổi shape login; kèm `notificationPreferences`) + `NotificationPreferencesRequest` (`Boolean`+`@NotNull` cả 2, `toPreferences()`).
+- **File 6** `UserRepository` +`findByIdAndDeletedAtIsNull` · `user/service/UserService.java` (`getMe`, `updateNotificationPreferences`, helper `findActiveOrThrow`→404).
+- **File 7** `user/controller/UserController.java` — `GET /api/v1/users/me` + `PUT /api/v1/users/me/notification-preferences` (pattern ReminderController + SecurityUtils; authenticated mặc định).
+- **File 8** `ReminderDispatchService.dispatchDueReminders()` (sửa) — inject `UserRepository`+`MailService`; mỗi reminder: `findByIdAndDeletedAtIsNull(userId).ifPresent` → `prefs.inApp` mới tạo notification, `prefs.email` mới `mailService.send`; **`setSentAt` LUÔN chạy** (ngoài ifPresent) tránh kẹt due. Helper `buildEmailBody` (description||title + "— Job Tracker AI").
+
+**⚠️ NỢ cần làm ở File 13:** `ReminderDispatchServiceTest` (5 test Phase 5) giờ ĐỎ — dispatcher load `userRepository` nhưng test chưa stub → notification không tạo. Phải thêm stub `findByIdAndDeletedAtIsNull` trả user có prefs + thêm case pref tắt kênh.
+
+**CÒN LẠI Phase 6:**
+- BE **File 9** `email/dto/` (`EmailDraftRequest{templateKey, customInstructions}` + `EmailDraftResponse{subject, body, tone, toEmail}`) · **File 10** `email/entity/EmailTemplateKey` enum (FOLLOW_UP_AFTER_APPLY, THANK_YOU_AFTER_INTERVIEW, STATUS_INQUIRY) · **File 11** `email/service/EmailDraftService` (ownership app `findByIdAndUserId` → prompt **Template 5** docs/04 temp 0.6 maxTokens 1000 → `AiService`+`JsonResponseParser` → điền `toEmail` từ `contactPerson.email`; stateless không lưu DB) · **File 12** `email/controller/EmailController` `POST /api/v1/applications/{id}/emails/draft` · **File 13** `EmailDraftServiceTest` + FIX `ReminderDispatchServiceTest`.
+- FE **File 14** `features/email/` types+api+queries (mutation draft) · **File 15** `EmailDraftSection.tsx` nhúng `ApplicationDetailPage` (chọn template + custom instructions → form sửa subject/body + Copy + `mailto:`) · **File 16** `features/settings/` (hoặc user) types+api+queries preferences · **File 17** `SettingsPage.tsx` + route `/settings` + link header (toggle in-app/email).
+
+**Test cuối Phase 6 (gộp luôn phần defer Phase 5):** cần **Mailtrap creds** trong `.env` (MAIL_USERNAME/PASSWORD). Backdate 1 reminder due trong DB → restart backend → xác nhận dispatcher (a) tạo notification (chuông) + (b) gửi email (xem ở Mailtrap) đúng theo preferences. + manual test draft AI + toggle Settings.
+
+**Next session:** (1) Maven reload + `mvnw clean compile` verify File 1-8 (nhất là dep mail + User JSONB mapping). (2) Code File 9-13 (mảng C + fix test). (3) File 14-17 FE. Chưa commit gì.
+
+---
+
 ## 2026-07-11 — Phase 5: đọc code + manual test xong → commit FE → ĐÓNG (code)
 
 **User đã đọc hết code Phase 5 (BE+FE) + manual test phần reminder trên UI.** Trong lúc đọc có thêm comment tiếng Việt học tập vào 4 file backend (Notification.java, NotificationService.java, ReminderDispatchService.java, ReminderService.java) — **comment-only, không đổi logic** — gộp luôn vào commit FE.

@@ -8,10 +8,14 @@ import com.jobtrackerai.notification.service.NotificationService;
 import com.jobtrackerai.reminder.entity.Reminder;
 import com.jobtrackerai.reminder.entity.ReminderType;
 import com.jobtrackerai.reminder.repository.ReminderRepository;
+import com.jobtrackerai.shared.mail.MailService;
+import com.jobtrackerai.user.entity.NotificationPreferences;
+import com.jobtrackerai.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -44,6 +48,8 @@ public class ReminderDispatchService {
     private final ReminderRepository reminderRepository;
     private final ApplicationRepository applicationRepository;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
+    private final MailService mailService;
 
     // ── Generator ─────────────────────────────────────────────────────────────
 
@@ -114,13 +120,26 @@ public class ReminderDispatchService {
         List<Reminder> due = reminderRepository.findDue(Instant.now());
 
         for (Reminder r : due) {
-            notificationService.create(
-                    r.getUserId(),
-                    NotificationType.REMINDER,
-                    r.getTitle(),
-                    r.getDescription(),
-                    r.getApplicationId() != null ? "/applications/" + r.getApplicationId() : null,
-                    buildMetadata(r));
+            // Đọc preferences của user để biết bắn kênh nào. User đã xóa mềm →
+            // bỏ qua cả 2 kênh (vẫn set sent_at bên dưới để reminder không bắn lại).
+            userRepository.findByIdAndDeletedAtIsNull(r.getUserId()).ifPresent(user -> {
+                NotificationPreferences prefs = user.getNotificationPreferences();
+
+                if (prefs.inApp()) {
+                    notificationService.create(
+                            r.getUserId(),
+                            NotificationType.REMINDER,
+                            r.getTitle(),
+                            r.getDescription(),
+                            r.getApplicationId() != null ? "/applications/" + r.getApplicationId() : null,
+                            buildMetadata(r));
+                }
+                if (prefs.email()) {
+                    // Async + fail-soft (MailService): SMTP chậm/lỗi không giữ hay
+                    // rollback transaction dispatcher này.
+                    mailService.send(user.getEmail(), r.getTitle(), buildEmailBody(r));
+                }
+            });
 
             r.setSentAt(Instant.now());
             reminderRepository.save(r);
@@ -130,6 +149,11 @@ public class ReminderDispatchService {
             log.info("Reminders dispatched: {}", due.size());
         }
         return due.size();
+    }
+
+    private String buildEmailBody(Reminder r) {
+        String content = StringUtils.hasText(r.getDescription()) ? r.getDescription() : r.getTitle();
+        return content + "\n\n— Job Tracker AI";
     }
 
     private Map<String, Object> buildMetadata(Reminder r) {

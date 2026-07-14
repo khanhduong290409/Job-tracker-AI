@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { AiMatchCard } from '@/features/ai/components/AiMatchCard';
 import { JdInsightSection } from '@/features/ai/components/JdInsightSection';
 import { useCvList } from '@/features/cv/api/queries';
+import { EmailDraftSection } from '@/features/email/components/EmailDraftSection';
 import { ReminderSection } from '@/features/reminders/components/ReminderSection';
 import type { ApplicationStatus } from '@/types/common';
 import {
@@ -240,6 +241,9 @@ export function ApplicationDetailPage() {
 
       {/* Nhắc nhở */}
       <ReminderSection applicationId={appId} />
+
+      {/* Soạn email gửi HR (AI) */}
+      <EmailDraftSection applicationId={appId} />
 
       {/* Timeline */}
       <div className="mt-8">

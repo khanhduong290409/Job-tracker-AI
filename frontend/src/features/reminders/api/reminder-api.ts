@@ -8,7 +8,7 @@ export const reminderApi = {
   // list trả mảng thuần (không phân trang) — reminder mỗi app ít.
   list: async (params: ReminderListParams = {}): Promise<Reminder[]> => {
     const res = await api.get<ApiResponse<Reminder[]>>(BASE, { params });
-    return res.data.data!;
+    return res.data.data!;//api trả về list còn ở đây là dùng mãng thì 2 cái này được xem là như nhau
   },
 
   create: async (body: CreateReminderRequest): Promise<Reminder> => {
