@@ -1,3 +1,4 @@
+import { ErrorState, LoadingState } from '@/components/ui/query-states';
 import { useProfile, useUpdateNotificationPreferences } from '../api/queries';
 import type { NotificationPreferences } from '../types';
 
@@ -6,16 +7,20 @@ import type { NotificationPreferences } from '../types';
  * (in-app + email) — bật/tắt lưu ngay (PUT full-replace cả 2 kênh).
  */
 export function SettingsPage() {
-  const { data: profile, isLoading, isError } = useProfile();
+  const { data: profile, isLoading, isError, refetch } = useProfile();
   const { mutate: updatePrefs, isPending } = useUpdateNotificationPreferences();
 
   if (isLoading) {
-    return <div className="mx-auto max-w-2xl px-4 py-8 text-sm text-gray-500">Đang tải...</div>;
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-8">
+        <LoadingState />
+      </div>
+    );
   }
   if (isError || !profile) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-8 text-sm text-red-600">
-        Không tải được thông tin tài khoản.
+      <div className="mx-auto max-w-2xl px-4 py-8">
+        <ErrorState message="Không tải được thông tin tài khoản." onRetry={refetch} />
       </div>
     );
   }

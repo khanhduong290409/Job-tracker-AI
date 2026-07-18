@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { LoadingState } from '@/components/ui/query-states';
 import { AiMatchCard } from '@/features/ai/components/AiMatchCard';
 import { JdInsightSection } from '@/features/ai/components/JdInsightSection';
 import { useCvList } from '@/features/cv/api/queries';
@@ -51,7 +52,11 @@ export function ApplicationDetailPage() {
   const [evtDesc, setEvtDesc] = useState('');
 
   if (isLoading) {
-    return <div className="mx-auto max-w-3xl px-4 py-8 text-sm text-gray-500">Đang tải...</div>;
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-8">
+        <LoadingState />
+      </div>
+    );
   }
   if (isError || !app) {
     return (

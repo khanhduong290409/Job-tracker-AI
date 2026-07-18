@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { LoadingState } from '@/components/ui/query-states';
 import { useCv, useReparseCv, useUpdateParsedData } from '../api/queries';
 import { CvParseStatusBadge } from '../components/CvParseStatusBadge';
 import { CvParsedDataEditor } from '../components/CvParsedDataEditor';
@@ -16,7 +17,11 @@ export function CvDetailPage() {
     return <PageShell>CV không hợp lệ.</PageShell>;
   }
   if (isLoading) {
-    return <PageShell>Đang tải...</PageShell>;
+    return (
+      <PageShell>
+        <LoadingState />
+      </PageShell>
+    );
   }
   if (isError || !cv) {
     return <PageShell>Không tìm thấy CV này.</PageShell>;
@@ -96,7 +101,8 @@ function PageShell({ children }: { children: React.ReactNode }) {
       <Link to="/cv" className="text-sm text-blue-600 hover:underline">
         ← Quay lại danh sách CV
       </Link>
-      <p className="mt-4 text-sm text-gray-600">{children}</p>
+      {/* div (không phải p) để chứa được cả text lẫn LoadingState (div) mà vẫn hợp lệ HTML */}
+      <div className="mt-4 text-sm text-gray-600">{children}</div>
     </div>
   );
 }

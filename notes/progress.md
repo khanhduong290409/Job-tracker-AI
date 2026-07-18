@@ -6,6 +6,34 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-07-19 — Phase 7B (Polish) — 7B-1 (fill-zero TimeSeries) + 7B-2 (UX states) XONG
+
+**Phase 7B bắt đầu. Chia 3 bước: 7B-1 fill-zero TimeSeries · 7B-2 UX states đồng bộ · 7B-3 README+screenshots. User chốt thứ tự: 7C Deploy làm TRƯỚC, 7B-3 README làm SAU CÙNG (sau khi xong hết). Verify: `tsc -p tsconfig.app.json` PASS · `eslint` 0 error · `npm run build` PASS (2854 modules).**
+
+- **7B-1** `analytics/components/TimeSeriesChart.tsx` — thêm helper `fillGaps(points, interval)`: backend `GROUP BY period` chỉ trả mốc CÓ dữ liệu → giữa 2 mốc thưa recharts nối thẳng thành đường phẳng giả (VD "Ngày": 3 đơn/3 ngày rời → đường phẳng y=1). Fix: chèn mốc count=0 cho mọi bước trống TRONG [mốc đầu, mốc cuối] bằng date-fns `eachDayOfInterval`/`eachWeekOfInterval({weekStartsOn:1})`/`eachMonthOfInterval` (each* khớp mốc vì backend đã `date_trunc` canh sẵn: tuần=thứ 2, tháng=ngày 1) + tra `Map<period,count>` `?? 0`. **Chỉ fill phần GIỮA** vì `TimeSeriesResponse` không trả from/to → không biết ranh đầu/cuối thật (mà phần đó cũng không hiển thị). Guard `points.length < 2` return thẳng. Fix ở FE, không đụng SQL.
+- **7B-2** UX states — tạo `components/ui/query-states.tsx`: 3 presentational component `LoadingState`(spinner `Loader2` lucide + "Đang tải..."), `ErrorState`(text đỏ + nút **Thử lại** optional gọi `refetch`), `EmptyState`(message bắt buộc). Adopt: **ApplicationListPage** + **CvListPage** + **SettingsPage** (đủ loading/error+retry/empty; destructure thêm `refetch` từ useQuery hook) · **ApplicationDetailPage** + **CvDetailPage** (đồng bộ loading = LoadingState, GIỮ nhánh not-found + link quay lại vì not-found retry vô nghĩa). `CvDetailPage.PageShell` đổi `<p>`→`<div>` để chứa LoadingState (div) hợp lệ HTML. Đặt ở `components/ui/` vì primitive dùng xuyên feature. KHÔNG thêm dep (Loader2 đã có).
+- **CÒN LẠI 7B-3 (làm SAU CÙNG):** `README.md` hoàn chỉnh (mô tả/tech stack/prerequisites/setup/run dev+prod/architecture/known issues) + screenshots (user chụp, bỏ `docs/screenshots/`).
+
+**Next: 7C Deploy.** Khuyến nghị đã chốt (xem handoff): deploy live 1 nền tảng (Railway hoặc Render) + `backend/Dockerfile`; bỏ frontend Dockerfile (FE static); docker-compose full-stack optional. Trọng tâm 7C: CORS prod + OAuth redirect URI + env prod + Flyway trên Postgres cloud. **Commit 7B-1+2 (chưa push).**
+
+---
+
+## 2026-07-18 (2) — Phase 7A (Analytics) — ĐÓNG + ĐÃ COMMIT `fd8a7f5`
+
+**User tự chạy end-to-end test trên browser → PASS. Phase 7A đóng hoàn toàn (code + verify SQL thật + eyeball chart + commit).**
+
+- **SQL verify PASS (rủi ro lớn nhất của 7A):** `docker compose up -d` + `mvnw spring-boot:run` + `npm run dev` → login → `/analytics`. 5 chart đều render CÓ DATA → toàn bộ query `AnalyticsRepository` (JPQL group/count + native `date_trunc` time-series/heatmap + native subquery `avgResponseTimeDays` join 2 mốc APPLIED) **chạy thật không lỗi**. "Phản hồi TB 2.5 ngày" hiện ra = subquery đúng.
+- **Đối chiếu plan (data test: 3 đơn):** Overview 5 ô (3/3/0/0%/2.5 ngày) · Funnel Đã nộp 1 / PV điện thoại 2 / PV kỹ thuật 1 (đếm theo history "từng đạt" — D-018) · Sources ITviec/Khác/TopDev mỗi cái 1 · Heatmap cụm xanh Th6-7. Khớp hết.
+- **2 điểm làm rõ khi user review lại (đáng nhớ):**
+  1. **TimeSeries sparse (caveat, KHÔNG bug):** repo `GROUP BY period` chỉ trả mốc CÓ đơn (mốc trống không thành dòng); FE ([TimeSeriesChart.tsx:127](../frontend/src/features/analytics/components/TimeSeriesChart.tsx#L127)) vẽ thẳng `data.points`, KHÔNG fill mốc 0 → recharts nối thẳng các điểm thưa → ở interval "Ngày" thành đường phẳng y=1 (3 đơn ở 3 ngày khác nhau). Trông như "ngày nào cũng 1 đơn". Muốn thật hơn: fill-zero cho mốc trống (như heatmap) — để 7B nếu cần. Khác Heatmap: FE tự sinh đủ 365 ô nên ngày trống hiện xám đúng.
+  2. **Heatmap: 1 ô = 1 NGÀY**, 1 cột = 1 tuần (7 ô dọc, thứ 2→CN). Bằng chứng: `week.map((day)=>...)` mỗi ô + tooltip `title` = `dd/MM/yyyy: X lần đổi trạng thái`. Màu: 0→xám `#eef1f4`, 4 bậc xanh ≥1/≥3/≥5/≥7.
+- **Commit `fd8a7f5` "Phase 7A - Analytics (overview, funnel, time-series, sources, activity heatmap)"** — 23 file, 1667 insertions: BE `analytics/` (8 file + test) + FE `features/analytics/` (Bước 6-13) + `routes.tsx` + `ProtectedLayout.tsx` + comment học tập `AiAnalysis.java` + notes. **CHƯA push.**
+- **Bug commit đã fix:** commit đầu (`672d323`) dính ký tự `@` đầu message vì gõ here-string PowerShell `@'...'@` trong **Bash tool** (Git Bash = POSIX shell, không hiểu `@'`) → `@` lọt vào literal. Amend bằng heredoc `<<'EOF'` → `fd8a7f5`. **Đúng bài học đã ghi 2026-07-07: Bash tool dùng heredoc, PowerShell tool mới dùng `@'...'@`.**
+
+**Next: Phase 7B — Polish** (chưa bắt đầu, đang plan). Sau đó 7C Deploy. US-005 tech-stack-demand vẫn defer (stretch).
+
+---
+
 ## 2026-07-18 — Phase 7A (Analytics) — FRONTEND CODE HOÀN THÀNH (Bước 11-13). tsc+eslint+build PASS. Chỉ còn test end-to-end + commit.
 
 **Code nốt Bước 11-13 → TOÀN BỘ frontend 7A xong. Verify: `tsc -p tsconfig.app.json` PASS · `npm run lint` 0 error (chỉ còn 1 warning cũ `incompatible-library` ở CreateApplicationPage — không liên quan) · `npm run build` PASS (2853 modules, 1.65s).**

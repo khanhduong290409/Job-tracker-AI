@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/query-states';
 import { APPLICATION_STATUSES, type ApplicationStatus } from '@/types/common';
 import { useApplications } from '../api/queries';
 import { ApplicationCard } from '../components/ApplicationCard';
@@ -22,7 +23,7 @@ export function ApplicationListPage() {
     search: search || undefined,
   };
 
-  const { data, isLoading, isError, isFetching } = useApplications(params);
+  const { data, isLoading, isError, isFetching, refetch } = useApplications(params);
 
   // Đổi filter → quay về trang đầu (tránh ở trang 3 nhưng filter mới chỉ có 1 trang)
   function handleStatusChange(value: string) {
@@ -78,18 +79,20 @@ export function ApplicationListPage() {
 
       {/* List */}
       <div className="mt-6">
-        {isLoading && <p className="text-sm text-gray-500">Đang tải...</p>}
+        {isLoading && <LoadingState />}
 
         {isError && (
-          <p className="text-sm text-red-600">Không thể tải danh sách. Thử lại sau.</p>
+          <ErrorState message="Không thể tải danh sách. Thử lại sau." onRetry={refetch} />
         )}
 
         {!isLoading && !isError && items.length === 0 && (
-          <p className="text-sm text-gray-500">
-            {search || status
-              ? 'Không có đơn nào khớp bộ lọc.'
-              : 'Chưa có đơn ứng tuyển nào. Tạo đơn đầu tiên!'}
-          </p>
+          <EmptyState
+            message={
+              search || status
+                ? 'Không có đơn nào khớp bộ lọc.'
+                : 'Chưa có đơn ứng tuyển nào. Tạo đơn đầu tiên!'
+            }
+          />
         )}
 
         {items.length > 0 && (

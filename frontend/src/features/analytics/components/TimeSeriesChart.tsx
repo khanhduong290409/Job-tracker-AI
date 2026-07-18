@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { format, parseISO } from 'date-fns';
+import {
+  eachDayOfInterval,
+  eachMonthOfInterval,
+  eachWeekOfInterval,
+  format,
+  parseISO,
+} from 'date-fns';
 import {
   CartesianGrid,
   Line,
@@ -10,7 +16,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useTimeSeries } from '../api/queries';
-import type { TimeSeriesInterval, TimeSeriesMetric } from '../types';
+import type { TimeSeriesInterval, TimeSeriesMetric, TimeSeriesPoint } from '../types';
 
 /**
  * US-ANALYTICS-003 — số đơn (hoặc phỏng vấn) theo thời gian, dạng đường.
@@ -49,6 +55,31 @@ const date = parseISO(period);              // string "2026-07-17" → Date obje
 return format(date, 'dd/MM');               // Date → string "17/07"
 parseISO("2026-07-17") trả về Date đại diện cho ngày 17/07/2026.
 */
+
+// Backend chỉ trả mốc CÓ dữ liệu → giữa 2 mốc thưa recharts nối thẳng thành đường phẳng gây hiểu lầm
+// (VD ở interval "Ngày": 3 đơn ở 3 ngày rời nhau vẽ thành đường phẳng y=1 như "ngày nào cũng có đơn").
+// Chèn lại mốc count=0 cho mọi bước trống TRONG khoảng [mốc đầu, mốc cuối] → đường tụt về 0 giữa các đỉnh.
+// Chỉ fill phần GIỮA: response không trả from/to nên không biết ranh đầu/cuối thật — mà đó cũng không hiển thị.
+function fillGaps(points: TimeSeriesPoint[], interval: TimeSeriesInterval): TimeSeriesPoint[] {
+  if (points.length < 2) return points;
+
+  const countByPeriod = new Map(points.map((p) => [p.period, p.count]));
+  const start = parseISO(points[0].period);
+  const end = parseISO(points[points.length - 1].period);
+
+  // Mốc backend đã bị date_trunc canh sẵn (tuần = thứ 2, tháng = ngày 1) → each* dưới đây khớp mốc.
+  const buckets =
+    interval === 'day'
+      ? eachDayOfInterval({ start, end })
+      : interval === 'week'
+        ? eachWeekOfInterval({ start, end }, { weekStartsOn: 1 })
+        : eachMonthOfInterval({ start, end });
+
+  return buckets.map((date) => {
+    const period = format(date, 'yyyy-MM-dd');
+    return { period, count: countByPeriod.get(period) ?? 0 };
+  });
+}
 
 // Nút segmented dùng chung cho cả metric lẫn interval (generic theo kiểu value).
 function SegmentedControl<T extends string>({
@@ -124,7 +155,10 @@ export function TimeSeriesChart() {
         </p>
       ) : (
         <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={data.points} margin={{ top: 4, right: 16, bottom: 4, left: -16 }}>
+          <LineChart
+            data={fillGaps(data.points, interval)}
+            margin={{ top: 4, right: 16, bottom: 4, left: -16 }}
+          >
             <CartesianGrid vertical={false} stroke={GRID_LINE} />
             <XAxis
               dataKey="period"

@@ -1,9 +1,10 @@
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui/query-states';
 import { useDeleteCv, useCvList, useSetDefaultCv } from '../api/queries';
 import { CvCard } from '../components/CvCard';
 import { UploadCvForm } from '../components/UploadCvForm';
 
 export function CvListPage() {
-  const { data: cvList, isLoading, isError } = useCvList();
+  const { data: cvList, isLoading, isError, refetch } = useCvList();
   const { mutate: setDefault, variables: settingDefaultId, isPending: isSettingDefault } = useSetDefaultCv();
   const { mutate: deleteCv, variables: deletingId, isPending: isDeleting } = useDeleteCv();
 
@@ -20,14 +21,14 @@ export function CvListPage() {
           Danh sách CV{cvList && cvList.length > 0 ? ` (${cvList.length})` : ''}
         </h2>
 
-        {isLoading && <p className="text-sm text-gray-500">Đang tải...</p>}
+        {isLoading && <LoadingState />}
 
         {isError && (
-          <p className="text-sm text-red-600">Không thể tải danh sách CV. Thử lại sau.</p>
+          <ErrorState message="Không thể tải danh sách CV. Thử lại sau." onRetry={refetch} />
         )}
 
         {!isLoading && !isError && cvList?.length === 0 && (
-          <p className="text-sm text-gray-500">Chưa có CV nào. Tải lên CV đầu tiên của bạn!</p>
+          <EmptyState message="Chưa có CV nào. Tải lên CV đầu tiên của bạn!" />
         )}
 
         {cvList && cvList.length > 0 && (

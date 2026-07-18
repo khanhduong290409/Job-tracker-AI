@@ -24,7 +24,7 @@ export function useOverview() {
   return useQuery({
     queryKey: ANALYTICS_KEYS.overview,
     queryFn: () => analyticsApi.getOverview(),
-    staleTime: STALE_TIME,
+    staleTime: STALE_TIME,//khi mới load xong thì 5' sau mới được load tiếp
   });
 }
 
