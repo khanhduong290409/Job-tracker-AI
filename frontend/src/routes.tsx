@@ -9,6 +9,7 @@ import { ApplicationListPage } from './features/applications/pages/ApplicationLi
 import { CreateApplicationPage } from './features/applications/pages/CreateApplicationPage';
 import { ApplicationDetailPage } from './features/applications/pages/ApplicationDetailPage';
 import { SettingsPage } from './features/settings/pages/SettingsPage';
+import { AnalyticsPage } from './features/analytics/pages/AnalyticsPage';
 
 // Phase 3/4/... sẽ replace các placeholder bên dưới bằng page thật
 
@@ -49,6 +50,7 @@ export function AppRoutes() {
         <Route path="/applications" element={<ApplicationListPage />} />
         <Route path="/applications/new" element={<CreateApplicationPage />} />
         <Route path="/applications/:id" element={<ApplicationDetailPage />} />
+        <Route path="/analytics" element={<AnalyticsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
 

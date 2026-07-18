@@ -41,7 +41,7 @@ public class AiAnalysis {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "result", columnDefinition = "jsonb", nullable = false)
-    private JsonNode result;
+    private JsonNode result;//result là kết quả gemini trả về dưới dạng json sau khi phân tích xong theo format mình đã yêu cầu
 
     @Column(name = "model_used", length = 50)
     private String modelUsed;

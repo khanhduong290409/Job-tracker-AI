@@ -6,6 +6,78 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-07-18 — Phase 7A (Analytics) — FRONTEND CODE HOÀN THÀNH (Bước 11-13). tsc+eslint+build PASS. Chỉ còn test end-to-end + commit.
+
+**Code nốt Bước 11-13 → TOÀN BỘ frontend 7A xong. Verify: `tsc -p tsconfig.app.json` PASS · `npm run lint` 0 error (chỉ còn 1 warning cũ `incompatible-library` ở CreateApplicationPage — không liên quan) · `npm run build` PASS (2853 modules, 1.65s).**
+
+- **Bước 11** `components/SourcesChart.tsx` (US-004) — horizontal bar theo nguồn (cấu trúc y hệt FunnelChart: 1 hue xanh, `LabelList` count, custom tooltip). Bar = count (backend đã sort giảm dần), tooltip thêm offers + conversionRate. **KHÔNG dual-axis** cho conversionRate (skill dataviz cấm — anti-pattern #1). Tự tạo `SOURCE_LABELS: Record<ApplicationSource,string>` (form hiện render enum thô, chưa có map dùng chung — chưa nâng lên shared vì YAGNI). Chiều cao động `Math.max(rows.length*44, 160)`.
+- **Bước 12** `components/ActivityHeatmap.tsx` (US-006) — grid CSS thuần kiểu GitHub (recharts không hợp heatmap). FE tự dựng 365 ngày: `end=today`, `start=startOfWeek(subDays(end,364), {weekStartsOn:1})`, `eachDayOfInterval` → chunk 7 (`toWeeks`). Tra count qua `Map<yyyy-MM-dd, count>` (backend chỉ trả ngày count>0). Màu 4 bậc sequential blue + xám cho 0. Nhãn tháng tràn phải qua ô trống. Tooltip = `title` HTML gốc (365 ô, custom tooltip quá nặng). **Lỗi lint gặp:** React Compiler `react-hooks/immutability` cấm gán lại `let lastMonth` trong `.map()` lúc render → sửa thành map thuần so tháng với tuần liền trước (index i-1); tháng tăng đơn điệu qua tuần nên tương đương.
+- **Bước 13** `pages/AnalyticsPage.tsx` + route `/analytics` (routes.tsx) + link header icon `BarChart3` lucide (ProtectedLayout, cạnh chuông+settings). Page chỉ dàn khung (`max-w-6xl` rộng hơn `max-w-3xl` các trang khác vì có chart+heatmap): Overview(full) → TimeSeries(full) → Funnel+Sources(grid 2 cột lg) → Heatmap(full). Mỗi section tự fetch → page không giữ state chung.
+
+**⚠️ CÒN LẠI DUY NHẤT — test end-to-end + commit (user tự làm sáng 2026-07-19):**
+1. `docker compose up -d` → `mvnw spring-boot:run`. **ĐÂY LÀ LẦN ĐẦU SQL của `AnalyticsRepository` (JPQL + native `date_trunc`) THỰC SỰ CHẠY** — `AnalyticsServiceTest` mock repo, `mvnw compile` không validate JPQL → lỗi query (nếu có) chỉ lộ lúc app start / gọi endpoint có data. Rủi ro thật, có thể phải fix backend.
+2. `npm run dev` → login → `/analytics` (icon 📊 header) → kiểm 5 section + đổi metric/interval + hover tooltip + heatmap ô/nhãn tháng/legend. (Đây là bước "render & look" skill dataviz yêu cầu — CHƯA eyeball chart lần nào.)
+3. Fix nếu lỗi.
+4. **Commit cả Phase 7A**: BE `analytics/` (8 file, từ 07-15) + FE `analytics/` (Bước 6-13) + sửa routes.tsx/ProtectedLayout.tsx + 2 comment học tập (`AiAnalysis.java`, `FunnelChart.tsx`, `TimeSeriesChart.tsx`, `ActivityHeatmap.tsx`) + notes.
+
+**Sau 7A:** 7B Polish + 7C Deploy (chưa bắt đầu). US-005 tech-stack-demand vẫn defer (stretch). **Chưa commit gì.**
+
+---
+
+## 2026-07-17 — Phase 7A (Analytics) — FRONTEND Bước 6-10 XONG (tsc PASS), dừng trước Bước 11
+
+**Làm tiếp phần frontend 7A. Review lại Bước 6 (đã đúng) rồi code Bước 7-10. Mỗi bước `tsc -p tsconfig.app.json --noEmit` PASS, EXIT=0. CHƯA eyeball chart thật (defer sang Bước 13 khi có trang + route + backend chạy — cũng là lúc verify SQL backend thật).**
+
+- **Bước 6** `types.ts` — REVIEW LẠI: mirror khớp 100% 5 DTO. Đã kiểm 4 điểm dễ sai: union `ApplicationStatus`/`ApplicationSource` đủ giá trị; `avgResponseTimeDays` Double→`number|null`; **`source` khai non-nullable AN TOÀN** vì `Application.source` là `@Column(nullable=false)`; tên param khớp controller. Không sửa gì.
+- **Bước 7** `api/analytics-api.ts` + `api/queries.ts` — 5 hàm GET unwrap `.data.data!`; 5 hook `useQuery` (analytics toàn chỉ-đọc, KHÔNG mutation). `time-series`/`activity` đưa `params` vào query key → mỗi filter 1 cache entry. `staleTime = 5 phút` (khác `ai/` dùng Infinity vì ai cache theo hash backend; analytics không cache backend). Truyền cả object params kể cả field undefined — axios tự bỏ field undefined.
+- **Bước 8** `components/OverviewCards.tsx` — 5 ô (tổng đơn/đang theo dõi/offer/tỉ lệ offer/phản hồi TB), tự fetch `useOverview`, loading=skeleton `animate-pulse`, lỗi=banner đỏ. `StatCard` sub-component, `delta?` optional (chỉ 2/5 ô có so-tháng). `avgResponseTimeDays==null → "—"` (không phải "0.0 ngày"). Format % + đơn vị ở FE, số thô ở backend.
+- **Bước 9** `components/FunnelChart.tsx` — horizontal bar (`BarChart layout="vertical"`, KHÔNG dùng `<Funnel>` trapezoid), **1 hue xanh `#2a78d6`** cho mọi stage (bar length đã tải magnitude → màu không cần phân biệt; skill dataviz "sequential=one hue"). Tái dùng `APPLICATION_STATUS_CONFIG` cho nhãn VN. `LabelList` số đơn cuối thanh, tooltip tỉ lệ chuyển. Guard `every(count===0)` → empty state. **Đã LOAD skill `dataviz`** — chốt palette light-mode: fill `#2a78d6`, axis ink `#898781`, grid `#e1e0d9` (app hiện CHỈ light-mode, component cũ không có `dark:` → không tự thêm dark).
+- **Bước 10** `components/TimeSeriesChart.tsx` — LineChart, 2 bộ nút `SegmentedControl<T>` generic (metric: đơn/phỏng vấn · interval: ngày/tuần/tháng) trong `useState`. `date-fns` `parseISO`+`format` (lần đầu project dùng): tháng→`MM/yyyy`, ngày/tuần→`dd/MM`. 1 đường 1 màu không legend. `dot={false}`+`activeDot r=4`, `strokeWidth 2`. from/to để trống → backend default 6 tháng.
+
+**CÒN LẠI 7A — Bước 11-13:**
+- **Bước 11** `SourcesChart` (US-004, BarChart theo nguồn: count + tỉ lệ chuyển). Dữ liệu `SourceAnalysisResponse` đã sort giảm dần theo count. Cân nhắc: bar count + hiện conversionRate (label/tooltip). Nhãn nguồn tiếng Việt — CHECK xem có `APPLICATION_SOURCE` label map chưa (giống status-meta), chưa có thì tự map gọn.
+- **Bước 12** `ActivityHeatmap` (US-006, grid CSS tự dựng kiểu GitHub, recharts không hợp heatmap). Backend chỉ trả ngày có count>0 → FE tự sinh lưới ngày trống. Màu theo bậc (sequential blue ramp `palette.md`: step 100→700).
+- **Bước 13** `AnalyticsPage` gộp 5 section + route `/analytics` + link header (gear/chart icon `lucide-react` trong `ProtectedLayout`, cạnh chuông+settings). **Đây là lúc chạy end-to-end**: FE test trên browser (cần Docker+backend+login) → verify 5 chart hiển thị + **verify SQL backend thật** (JPQL/native chưa chạy lần nào) → fix nếu lỗi → commit CẢ Phase 7A (BE + FE).
+
+**Ghi chú:** user thêm comment học tập tiếng Việt vào `FunnelChart.tsx` (`.every()`) + `AiAnalysis.java` (result JSONB) — comment-only, gộp commit sau. **Chưa commit gì.** **Next session: Bước 11 SourcesChart.**
+
+---
+
+## 2026-07-15 — Phase 7A (Analytics) — BACKEND core-5 HOÀN THÀNH (compile + 7/7 test PASS)
+
+**Phase 7 bắt đầu. Chốt chia 3 milestone tuần tự: 7A Analytics → 7B Polish → 7C Deploy.** User chọn làm Analytics trước. Scope Analytics: **core 5 story (US-001/002/003/004/006), DEFER 005 tech-stack-demand** làm stretch cuối (phức tạp: aggregate JSONB `ai_analyses` + phụ thuộc nhiều đơn đã AI-parse).
+
+**Quyết định chốt trước khi code (D-018):** "offer" đếm theo **"TỪNG đạt OFFER" từ `application_status_history`** (không phải current status IN (OFFER,ACCEPTED)) — nhất quán 1 định nghĩa offer toàn dashboard (overview card + funnel + sources đều dùng history), không sót ca offer-rồi-từ-chối/rút. User đã hỏi kỹ chỗ này → đổi từ current-status sang history.
+
+**BE core-5 XONG (5 file, module mới `analytics/`, KHÔNG migration/bảng mới — aggregate trên bảng có sẵn):**
+- **DTO ×5** `analytics/dto/`: `OverviewResponse`(+MonthComparison) · `FunnelResponse`(+FunnelStage) · `TimeSeriesResponse`(+Point) · `SourceAnalysisResponse`(+SourceStat) · `ActivityResponse`(+ActivityDay). Output thuần → KHÔNG `@JsonIgnoreProperties`. `comparedToLastMonth` để String sẵn dấu ("+15%"/"+1"); `avgResponseTimeDays` Double nullable.
+- **`AnalyticsRepository`** (14 method): JPQL cho count/group (tự lọc soft-delete qua @SQLRestriction) + **native SQL** cho time-series/heatmap (cần `date_trunc(:interval,...)`; native BỎ QUA @SQLRestriction → TỰ thêm `a.deleted_at IS NULL`). Theta-join JPQL `FROM ApplicationStatusHistory h, Application a WHERE h.applicationId=a.id` vì status_history/timeline_events không có user_id (applicationId là Long thuần, không map @ManyToOne). `avgResponseTimeDays` = native subquery (applied_at = MIN changed_at to_status=APPLIED; first_response = MIN changed_at from_status=APPLIED).
+- **`AnalyticsService`** `@Transactional(readOnly=true)`: map `List<Object[]>` → DTO, tính offerRate/conversion/so-tháng, merge 2 nguồn heatmap (`Map.merge(...,Long::sum)`). Validate mềm metric/interval (giá trị lạ → default applications/week). Default range: time-series 6 tháng, heatmap 1 năm. Ranh giới tháng dùng UTC (khớp changedAt=Instant.now()). Guard chia 0 mọi rate. Helper `toLocalDate`(java.sql.Date)/`toLong`(Number → nhận cả BigInteger/Long từ native).
+- **`AnalyticsController`** 5 GET `/api/v1/analytics/{overview,funnel,time-series,sources,activity}`. userId TỪ SecurityUtils (không nhận client). `@DateTimeFormat(iso=DATE)` cho param from/to. Bám đúng contract docs/03 §Analytics.
+- **`AnalyticsServiceTest`** 7 test (mock repository, không đụng DB): offerRate+so-tháng, empty-data no-NPE, funnel fill-missing+guard-chia-0, sources conversion+sort, time-series default+mapping, interviews routing, heatmap merge. Lỗi gặp: `List.of(new Object[]{...})` 1 phần tử bị suy `List<Object>` → fix `List.<Object[]>of(...)`.
+
+**Verify:** `mvnw compile` PASS · `mvnw test -Dtest=AnalyticsServiceTest` → **7/7 PASS (EXIT=0)**. ⚠️ **CHƯA verify SQL thật** (JPQL/native chỉ lộ lỗi lúc app khởi động + query cần data thật) — làm khi có FE test end-to-end hoặc test REST riêng.
+
+**CÒN LẠI 7A — Frontend (Bước 6-13, chưa làm), dùng recharts ^3.8.1 + date-fns ĐÃ CÓ SẴN (không thêm dep):**
+- Bước 6 `features/analytics/types.ts` (mirror 5 DTO) · Bước 7 `api/analytics-api.ts`+`queries.ts` (5 GET + hooks)
+- Bước 8 `OverviewCards` (US-001) · Bước 9 `FunnelChart` (US-002, recharts) · Bước 10 `TimeSeriesChart` (US-003, LineChart, đổi interval) · Bước 11 `SourcesChart` (US-004, BarChart) · Bước 12 `ActivityHeatmap` (US-006, grid CSS tự dựng — recharts không hợp heatmap)
+- Bước 13 `AnalyticsPage` + route `/analytics` + link header
+- **Trước khi viết chart (9-12) LOAD skill `dataviz`** để màu/layout nhất quán.
+
+**Quyết định khác:** 1 trang `/analytics` gộp hết (không tách Dashboard vs Analytics như frontend-spec). Heatmap chỉ trả ngày có hoạt động (count>0), FE tự vẽ ô trống.
+
+**Chưa commit gì.** **Next session: Frontend Bước 6.**
+
+---
+
+## 2026-07-14 (3) — Phase 6 ĐÃ COMMIT → ĐÓNG hoàn toàn
+
+**Toàn bộ Phase 6 đã commit ở `e6d8d70` "Phase 6 - Email Integration (preferences + reminder email + AI draft)"** (BE File 1-13 + FE File 14-17 + notes). `git status` **clean**. Các dòng "CHƯA commit" ở những entry phía dưới là viết trước lúc commit → nay lỗi thời (giữ làm lịch sử).
+
+**Next: Phase 7 — Analytics + Polish + Deploy** (chưa bắt đầu). Đang đọc `docs/01-features.md` + `docs/08-user-stories.md` để chốt scope + plan.
+
+---
+
 ## 2026-07-14 (2) — Phase 6: TEST CUỐI PASS → PHASE 6 ĐÓNG
 
 **User đã đăng ký Mailtrap (điền `MAIL_USERNAME`/`MAIL_PASSWORD` vào `.env`) + chạy test cuối trên browser → OK.** Chốt Phase 6 hoàn thành cả code lẫn test.

@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation, Link } from 'react-router-dom';
-import { Settings } from 'lucide-react';
+import { BarChart3, Settings } from 'lucide-react';
 import { useAuthStore } from '../../features/auth/store/auth-store';
 import { NotificationBell } from '../../features/notifications/components/NotificationBell';
 
@@ -25,6 +25,13 @@ export function ProtectedLayout() {
       {/* Thanh header chung: chuông thông báo + cài đặt canh phải. Sticky để luôn thấy khi cuộn. */}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-end gap-2 border-b border-gray-200 bg-white px-4">
         <NotificationBell />
+        <Link
+          to="/analytics"
+          aria-label="Phân tích"
+          className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+        >
+          <BarChart3 className="h-5 w-5" />
+        </Link>
         <Link
           to="/settings"
           aria-label="Cài đặt"
