@@ -1,0 +1,11 @@
+# Giữ build context nhỏ — không gửi các thứ không cần cho Docker build.
+target/
+.git/
+.gitignore
+*.md
+.env
+.env.*
+.idea/
+*.iml
+.vscode/
+HELP.md

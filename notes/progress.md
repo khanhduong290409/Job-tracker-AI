@@ -6,6 +6,21 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-07-19 (2) — Phase 7C (Deploy) — chuẩn bị code/config XONG (Vercel + Render + Neon)
+
+**User chốt stack: Frontend → Vercel · Backend → Render (Docker) · DB → Neon (Postgres). KHÔNG deploy Redis.** Phần code/config phía mình lo được đã xong; phần còn lại là user thao tác dashboard theo `docs/deployment.md`.
+
+- **Redis bỏ được:** grep toàn `backend/src/main` KHÔNG có `@Cacheable/@CacheEvict/@CachePut` (chỉ 1 comment trong `CacheConfig`). `RedisCacheManager` bean tạo nhưng không ai gọi → Redis vô dụng runtime. App start OK không cần Redis. Chỉ tắt actuator Redis health indicator ở prod để `/actuator/health` không DOWN.
+- **`application.yaml` — 3 sửa cho cloud:** (1) `server.port: ${PORT:8080}` (Render inject PORT). (2) datasource url thêm `${DB_PARAMS:}` (mặc định rỗng; Neon cần `?sslmode=require`). (3) prod profile thêm `management.health.redis.enabled: false`. *(Gặp lỗi typo lồng dư `redis.redis` → IDE báo unknown property → sửa.)*
+- **`backend/Dockerfile` + `.dockerignore`:** multi-stage `maven:3.9-eclipse-temurin-17` → `eclipse-temurin:17-jre-alpine`, `mvn clean package -DskipTests`, `-XX:MaxRAMPercentage=75.0`. Dùng image maven (không `./mvnw`) tránh lỗi CRLF. **Bài học:** build đầu (có `dependency:go-offline`) rớt daemon (rpc EOF) vì go-offline ngốn RAM lúc máy đang chạy IDE/app → **bỏ go-offline**, để `package` tự tải dep. Và `docker build ... | tail` khiến exit code lấy của `tail` (=0) che lỗi build thật — phải đọc output.
+- **`frontend/vercel.json`:** rewrite `/(.*)` → `/index.html` cho React Router (refresh deep-link không 404).
+- **`docs/deployment.md`:** runbook đầy đủ — bảng env vars chính xác cho Render (SPRING_PROFILES_ACTIVE=prod, DB_*, DB_PARAMS, JWT_SECRET bắt buộc, GOOGLE_*, GEMINI_MODEL=gemini-2.5-flash, CLOUDINARY_*, APP_CORS_ALLOWED_ORIGINS, MAIL_* optional) + Vercel (VITE_API_BASE_URL gồm `/api/v1`, VITE_GOOGLE_CLIENT_ID, VITE_APP_NAME) + thứ tự Neon→Render→Vercel (phụ thuộc chéo: quay lại sửa CORS + GOOGLE_REDIRECT_URI với URL Vercel) + Google Console redirect URI + smoke test checklist. FE tự dựng `redirect_uri=${window.location.origin}/auth/callback`.
+- **Memory:** lưu [[project-deploy-stack]].
+
+**CÒN LẠI 7C:** user tự thao tác dashboard (Neon → Render → Vercel → cập nhật chéo → smoke test). **Sau 7C: 7B-3 README + screenshots (LÀM CUỐI CÙNG).** **Chưa commit 7C.**
+
+---
+
 ## 2026-07-19 — Phase 7B (Polish) — 7B-1 (fill-zero TimeSeries) + 7B-2 (UX states) XONG
 
 **Phase 7B bắt đầu. Chia 3 bước: 7B-1 fill-zero TimeSeries · 7B-2 UX states đồng bộ · 7B-3 README+screenshots. User chốt thứ tự: 7C Deploy làm TRƯỚC, 7B-3 README làm SAU CÙNG (sau khi xong hết). Verify: `tsc -p tsconfig.app.json` PASS · `eslint` 0 error · `npm run build` PASS (2854 modules).**

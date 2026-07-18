@@ -26,8 +26,9 @@ export function useGoogleLogin() {
     window.location.href = buildGoogleOAuthUrl();
   };
   //window.location.href = url — chuyển hướng trình duyệt sang URL khác. Gán URL vào đây là cách redirect trong browser.
-  return { login };
-}
+  return { login };//trả về object chứa hàm login để component dùng:
+}//const { login } = useGoogleLogin();
+
 
 export function useLogout() {
   const clearAuth = useAuthStore((state) => state.clearAuth);
@@ -46,3 +47,11 @@ export function useLogout() {
     },
   });
 }
+/*
+useMutation là gì
+React Query hook dùng cho các action thay đổi data (POST/PUT/DELETE) — khác useQuery chỉ dùng để đọc data.
+
+mutationFn — logic chính
+Hàm chạy khi bạn gọi mutation:
+
+ */

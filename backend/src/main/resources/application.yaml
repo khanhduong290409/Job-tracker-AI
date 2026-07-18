@@ -10,7 +10,8 @@ spring:
     active: ${SPRING_PROFILES_ACTIVE:dev}
 
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:jobtracker}
+    # DB_PARAMS: query string tùy môi trường (mặc định rỗng). Neon/managed Postgres cần "?sslmode=require".
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:jobtracker}${DB_PARAMS:}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
     hikari:
@@ -63,7 +64,8 @@ spring:
       indent-output: false
 
 server:
-  port: 8080
+  # Cloud (Railway/Render) inject biến PORT và yêu cầu app bind đúng cổng đó; local mặc định 8080.
+  port: ${PORT:8080}
   error:
     include-message: always
     include-binding-errors: always
@@ -155,6 +157,12 @@ server:
   error:
     include-message: never
     include-binding-errors: never
+
+management:
+  health:
+    redis:
+      # Prod không chạy Redis (cache chưa dùng @Cacheable) → tắt indicator để /actuator/health không DOWN.
+      enabled: false
 
 logging:
   level:
