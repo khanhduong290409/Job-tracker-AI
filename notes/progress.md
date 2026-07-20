@@ -6,6 +6,47 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-07-20 — REDESIGN UI: xong toàn bộ trang chính (chưa commit) + code thumbnail CV
+
+**Ngày làm redesign đậm nhất. Lần thử 1 (tự đề xuất gu tím) bị chê "trống/nhạt" → REVERT hết. Lần 2: user gửi MOCKUP (sidebar layout) → làm theo, chạy tốt. Verify cuối: `npm run build` PASS (2858 modules), `mvnw compile` PASS.**
+
+- **Gu chốt:** primary **navy** `hsl(207 75% 30%)` (user tự chỉnh L 40→30 cho trầm). Light-only. CHỈ đổi `--primary`+`--ring` trong `index.css`, giữ nguyên neutral shadcn gốc (rút kinh nghiệm lần 1 overhaul làm nhạt).
+- **Shell** `ProtectedLayout` → **sidebar dọc**: logo + nav (icon, active nền primary/10) + khe cắm section theo-trang + Cài đặt + **khối user (avatar/tên/email) + nút Đăng xuất** (dùng hook `useLogout` sẵn có). Khe cắm = **React Context + createPortal** (`components/layout/sidebar-slot.ts`, hook `useSidebarSlot`): layout giữ 1 `<div>` trong sidebar, trang bơm nội dung vào đúng cột đó → nav toàn cục mà section riêng của trang vẫn nằm chung sidebar. Chuông NotificationBell chuyển sang header main từng trang (dropdown mở xuống không bị che).
+- **Trang Đơn (list):** `ApplicationsSidebar` (Tổng quan 4 chỉ số + progress bar; Trạng thái filter chấm màu + số đếm) portal vào slot. **+1 query đếm read-only** (`useApplications size 200` đếm client-side theo status). Card mới: **`StatusStepper`** (Lưu→Nộp→PV→Offer→Nhận, suy từ current status; đơn đóng REJECTED/WITHDRAWN hiển thị mờ vì list KHÔNG có history) + avatar chữ cái màu-theo-id + meta icon. **BỎ skill tags** (v1 — data không có trong model).
+- **Trang Đơn (detail):** đổi 1 cột dài → **2 CỘT**. Trái: JD/notes · Phân tích JD (AI) · Độ khớp CV-JD (AI) · Soạn email (AI) · Timeline · Lịch sử. Phải (**rail sticky**): Thông tin · Đổi trạng thái · CV ứng tuyển · Nhắc nhở. Thêm `SectionCard` khung chung + header có avatar+stepper. 4 section nhúng (JdInsight/AiMatch/EmailDraft/Reminder) **chỉ bỏ `mt-8` + đồng bộ vỏ card**, KHÔNG đụng logic.
+- **Tạo đơn:** gom form dài → **2 card nhóm** (Thông tin cơ bản / Chi tiết đơn). `inputClass` sang token navy. Nút AI đổi emoji ✨ → icon `Sparkles`.
+- **CV:** list có sidebar Tổng quan CV + grid 2 cột; **`CvCard` thêm thumbnail PDF** (xem mục dưới); UploadCvForm + CvDetailPage đổi xanh→navy + bọc card; `CvParsedDataEditor` đổi `inputClass` sang token.
+- **Analytics:** OverviewCards thêm icon màu. Chart: **Funnel + Sources đổ gradient 2 tông** — file mới `chart-colors.ts` hàm `rampColors(count)` nội suy R/G/B giữa `#154B75`→`#9ECAE1` (dùng recharts `<Cell>`); **height cả 2 chart = 200** để 2 card cạnh nhau đều nhau (fix lệch do trước đó Sources cao động). TimeSeries (line) + Heatmap **giữ màu xanh** (user chê tím ở nét dữ liệu chart trông kỳ — chỉ giữ tím/navy cho UI brand). Vỏ card + tiêu đề `text-base` đồng bộ.
+- **Settings:** thêm **card Tài khoản** (avatar + tên/email + Gmail đã/chưa kết nối + thành viên từ — dùng data profile sẵn có); Switch `bg-blue-600`→`bg-primary`. (Làm rõ: `gmailConnected` LUÔN false vì tính năng kết nối Gmail API defer từ Phase 6 — user OK giữ nguyên dòng đó.)
+- **Login:** **2 panel** (trái navy marketing: logo + headline + 3 feature; phải card đăng nhập Google). Callback đổi indigo→primary. (Xác nhận: app CHỈ Google OAuth, KHÔNG password — cố ý, `UserPrincipal.getPassword()` trả null.)
+- **XÓA route `/dashboard`** + DashboardPlaceholder; mọi redirect (`/`, PublicLayout khi đã login, CallbackPage sau login) → `/applications` (yêu cầu riêng của user, không thuộc redesign).
+
+**Thumbnail PDF CvCard (CODE XONG, CHƯA TEST):** BE `CloudinaryFileStorageService.store()` đổi `resource_type` **"raw"→"image"**. FE `CvCard` helper `pdfThumbUrl(fileUrl)` (chèn `pg_1,w_400,h_520,c_fill,q_auto/` sau `/image/upload/` + đổi đuôi `.jpg`) → `<img>` thumbnail; URL cũ `/raw/upload/` → null → fallback icon `FileText`; `<img onError>` cũng fallback. **USER PHẢI bật Cloudinary Settings→Security "Allow delivery of PDF and ZIP files"** (không bật → upload mới hỏng cả thumbnail lẫn parse, 401) + upload CV MỚI test. Cũng fix **B-001** (CvDetailPage tự download PDF → nay inline).
+
+**File mới (4):** `components/layout/sidebar-slot.ts` · `features/applications/components/StatusStepper.tsx` · `features/applications/components/ApplicationsSidebar.tsx` · `features/analytics/chart-colors.ts`. **File sửa (~20):** index.css, ProtectedLayout, PublicLayout, routes, CallbackPage, LoginPage, ApplicationCard, ApplicationListPage, ApplicationDetailPage, CreateApplicationPage, status-meta(?)/ApplicationStatusBadge (revert), CvCard, CvListPage, CvDetailPage, UploadCvForm, CvParsedDataEditor, SettingsPage, OverviewCards, TimeSeriesChart, FunnelChart, SourcesChart, ActivityHeatmap, NotificationBell(net 0), + BE CloudinaryFileStorageService.
+
+**ĐÃ ĐÓNG 2026-07-21:** user bật Cloudinary setting + upload CV mới → thumbnail chạy OK; test end-to-end redesign trên browser OK. **Commit tách 2:** `2420189` "Redesign UI - navy theme + sidebar layout" (29 file) + `0caf1bf` "CV thumbnail PDF + fix B-001 (xem PDF inline)" (3 file). `CvCard.tsx`/`CvDetailPage.tsx` mang cả 2 loại thay đổi nên gộp vào commit thumbnail (không tách hunk sạch được). **CHƯA push. Còn lại: Deploy 7C (user thao tác dashboard) + README 7B-3 + screenshots — làm cuối cùng.**
+
+---
+
+## 2026-07-19 (3) — PLAN MỚI: REDESIGN toàn bộ UI/UX (chưa bắt đầu)
+
+**User chốt việc tiếp theo: redesign lại TẤT CẢ các trang + bố cục (layout) từng phần cho hợp lý, tối ưu UX.** Chưa code gì — mới ghi plan. Gu/scope chi tiết (phong cách, dark mode, có thêm Radix dep không) CHƯA chốt, sẽ hỏi khi bắt đầu.
+
+- **Hiện trạng UI (khảo sát 2026-07-19):** project đã có "nửa khung" design-system kiểu shadcn/ui nhưng **các trang không dùng**:
+  - `src/index.css`: CSS-variable tokens (`--background/--foreground/--primary/--secondary/--muted/--card/--border/--ring/--radius`), chỉ `:root` (light), CHƯA `.dark`.
+  - `tailwind.config.js`: map tokens → `colors.primary/card/border/...` + `borderRadius` theo `--radius`.
+  - `components/ui/button.tsx`: chuẩn shadcn (`cva` + `class-variance-authority` + `@radix-ui/react-slot` Slot + `cn` = clsx+tailwind-merge). **Các dep này ĐÃ CÓ.**
+  - `components/ui/` mới có `button` + `query-states` — CHƯA có Card/Input/Select/Badge/Dialog...
+  - Mọi page (applications/cv/settings/analytics/auth) viết tay `text-gray-900`/`bg-white`/`border-gray-200`/`bg-gray-50` — **bỏ qua tokens**, không nhất quán.
+  - `ProtectedLayout`: header sticky đơn giản (chuông + analytics + settings canh phải), `bg-gray-50`, KHÔNG sidebar/nav. Chưa có điều hướng chính rõ ràng (các trang tự `<Link>` rời rạc).
+- **Định hướng redesign (dự kiến):** (1) refine giá trị tokens cho đẹp/hợp gu đã chốt; (2) dựng bộ `components/ui/` primitive (Card, Input, Select, Badge, Label, ...) dùng tokens; (3) refactor từng trang bỏ class gray thô → dùng primitive + token; (4) **xem lại bố cục từng trang + điều hướng tổng** (cân nhắc sidebar/topnav, dashboard landing, gom section hợp lý) để tối ưu UX; (5) cân nhắc dark mode (tokens sẵn nên rẻ).
+- Chi tiết + phát hiện lưu memory [[project-redesign-plan]].
+
+**Deploy 7C (user thao tác dashboard) + 7B-3 README vẫn treo — làm xen kẽ hoặc sau redesign.**
+
+---
+
 ## 2026-07-19 (2) — Phase 7C (Deploy) — chuẩn bị code/config XONG (Vercel + Render + Neon)
 
 **User chốt stack: Frontend → Vercel · Backend → Render (Docker) · DB → Neon (Postgres). KHÔNG deploy Redis.** Phần code/config phía mình lo được đã xong; phần còn lại là user thao tác dashboard theo `docs/deployment.md`.

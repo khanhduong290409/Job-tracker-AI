@@ -27,9 +27,10 @@ Format:
 - **Giải pháp:** (a) `.env` `GEMINI_MODEL=gemini-2.5-flash`; (b) `GeminiAiService` set `thinkingConfig{thinkingBudget:0}` (tắt thinking toàn cục) + `CvService` nâng maxTokens parse CV → 8192.
 - **Lưu ý:** `thinkingConfig` gửi cho model không hỗ trợ (vd 2.0-flash) có thể 400 — nếu đổi model sau này nhớ chỗ này. Default application.yaml vẫn 2.0-flash, `.env` override.
 
-### B-001: PDF không xem inline được — tự download khi mở CvDetailPage — [OPEN — defer Phase 7]
+### B-001: PDF không xem inline được — tự download khi mở CvDetailPage — [RESOLVED 2026-07-21 · commit `0caf1bf`]
 - **Phase/File:** Phase 4 US-CV-002 · `CvDetailPage.tsx` (iframe PDF) · `CloudinaryFileStorageService.java`
 - **Vấn đề:** Vào `/cv/{id}`, iframe `src={cv.fileUrl}` khiến browser TỰ TẢI VỀ 1 file tên UUID (vd `003c5be9-...`) thay vì render PDF inline.
 - **Nguyên nhân:** Upload dùng `resource_type: "raw"` → Cloudinary phục vụ với `Content-Disposition: attachment` + content-type `application/octet-stream`; thêm nữa `public_id` là UUID KHÔNG có đuôi `.pdf` → browser không nhận ra PDF. Cả iframe lẫn link "Mở PDF" đều bị tải về.
 - **Đã thử:** iframe + link fallback (File 23) — vẫn tải về vì cùng URL raw/attachment.
 - **Giải pháp (Phase 7):** Đổi `resource_type` `"raw"` → `"image"` khi upload + URL có `.pdf` (`.../image/upload/<public_id>.pdf`), bật setting Cloudinary "Allow delivery of PDF and ZIP files". Lưu ý chỉ ăn với CV upload MỚI. Làm chung với thumbnail trang đầu (pg_1) — xem memory `project-cv-preview-deferred`. Giải pháp tạm nếu cần xem ngay: Google Docs viewer embed (FE-only). KHÔNG block US-CV-002 (feature test là editor parsed data).
+- **ĐÃ FIX 2026-07-21 (commit `0caf1bf`):** `CloudinaryFileStorageService` đổi `resource_type` raw→image; user bật Cloudinary Settings→Security "Allow delivery of PDF and ZIP files"; upload CV mới → PDF hiện inline + có thumbnail trang đầu trong `CvCard`. **CV cũ (upload trước fix) vẫn là URL `/raw/upload/` → vẫn tự tải về + hiện icon fallback** — không migrate, chấp nhận.
