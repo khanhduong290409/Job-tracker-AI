@@ -6,6 +6,29 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-07-21 — Thương hiệu "Applyist" (logo + banner Login) + debounce search — ĐÃ COMMIT + PUSH
+
+**User tự thiết kế logo + banner marketing, bỏ vào `frontend/src/assets/`. Verify: `tsc` PASS · `eslint` 0 lỗi · `npm run build` PASS. Commit `edb3610` (thương hiệu, 10 file) + `38d428a` (debounce search, 1 file), đã push.**
+
+**Xử lý asset — bài học đáng nhớ:**
+- File logo lần 1 (`logo_applyist.png` 2.1MB) là **ảnh mockup trình bày** (logo phát sáng trên tường xám, nền tối nướng cứng vào ảnh) → KHÔNG phải asset dùng được. Đã nói user export lại.
+- File lần 2 nền trong suốt thật (kiểm bằng PNG header: ColorType=6 RGBA + `GetPixel().A == 0` ở góc) NHƯNG **logo chỉ chiếm 21% khung**: bbox 540×615 nằm giữa canvas 1536×1023, lề trái/phải 498px. Render `className="h-8"` sẽ co CẢ canvas → logo thật còn ~19px. Đây là lỗi kinh điển khi lấy file export từ công cụ thiết kế.
+- **Cắt sát viền bằng PowerShell `System.Drawing`** (dò bbox theo alpha > 8, tách khối bằng cách quét hàng trống): logo tách 3 khối — icon Y156–578, wordmark Y592–726, tagline Y748–774. Xuất 2 file: **`logo.png`** (558×634, lockup đủ) + **`logo-mark.png`** (428×433, CHỈ icon). Giữ `logo_applyist.png` gốc làm nguồn. `Graphics.Clear(Color.Transparent)` + `Format32bppArgb` để không mất alpha.
+- **`background_login.png` KHÔNG phải background** mà là banner marketing hoàn chỉnh (đã có logo + headline + 3 feature + mockup dashboard) → dùng làm nền rồi đè chữ sẽ chồng chữ.
+
+**Trang Login** (user chọn phương án full-bleed): `<img>` phủ toàn màn hình `absolute inset-0 object-cover` + lớp phủ `bg-slate-950/75 backdrop-blur-[2px]` + card căn giữa (`relative` để nổi lên, không cần z-index). **Logo lockup đặt TRONG card** (nền sáng) vì bảng màu logo — wordmark xanh gradient + tagline xám — dành cho nền sáng, đặt trên lớp phủ tối sẽ mất tương phản. `h-28 w-auto` (khoá 1 chiều để không méo khi đổi logo). Import ảnh dạng module (`import x from '@/assets/...'`) để Vite hash + cache-bust; type-check được nhờ `"types": ["vite/client"]` có sẵn trong `tsconfig.app.json`.
+
+**Sidebar** (`ProtectedLayout`): dùng `logo-mark.png` (chỉ icon) vì cạnh nó đã có chữ "Applyist" — dùng lockup sẽ lặp chữ 2 lần. `alt=""` + `aria-hidden` (ngược với Login) vì tên đã có dưới dạng text thật, để alt sẽ đọc "Applyist Applyist". `object-contain` giữ trọn hình gần-vuông trong ô 32×32. Logo **giữ nguyên không bấm được** (vốn là `<div>` tĩnh) — biến thành link là đổi hành vi, ngoài scope.
+
+**Tên app:** user chọn "Applyist" + tagline "Job Tracker AI". Sửa `index.html` (title trước là **"frontend"** — default Vite chưa ai đổi; `lang` en→vi vì app toàn tiếng Việt), `favicon.png` 64px sinh từ logo-mark bằng `HighQualityBicubic` (7.2KB, thay `favicon.svg` mặc định Vite — file cũ còn nhưng không ai tham chiếu), `env.ts` + `.env.example` `VITE_APP_NAME=Applyist`. Lưu ý: **`VITE_APP_NAME` chưa được đọc ở bất kỳ đâu trong code** (đã grep) — đổi chỉ để nhất quán. Favicon phải nằm `public/` (copy nguyên tên) chứ không phải `src/assets/` (bị hash).
+
+**Debounce search** (`ApplicationListPage`): `useEffect` + `setTimeout` 300ms đồng bộ `searchInput` → `search`, `return () => clearTimeout(timer)` huỷ timer lần gõ trước → gõ "google" tốn **1 request thay vì 6**; `setPage(0)` đặt TRONG timer (đặt ở onChange sẽ reset trang mỗi ký tự). Bỏ `<form onSubmit>` + `handleSearchSubmit`; input đổi `type="search"` (có nút ✕ của trình duyệt, vẫn chạy qua debounce). `keepPreviousData` đã có sẵn nên list không nhấp nháy.
+- **Đã cân nhắc và BÁC phương án lọc client-side** (user đề xuất): tiền đề "data load hết 1 lần" SAI — list phân trang server-side `PAGE_SIZE=10`, lọc client chỉ lọc 10 đơn của trang hiện tại → sai kết quả im lặng. Query `size:200` chỉ để đếm cho sidebar; dựa vào nó sẽ tạo **trần ẩn ở 200 đơn** + phải viết lại paging client + nhân đôi logic tìm kiếm (BE tìm `companyName`/`position`).
+
+**CÒN TREO:** `background_login.png` **2MB** nằm trong bundle và tải ở trang login (trang đầu tiên user gặp) → nên xuất lại `.jpg` q80 hoặc `.webp` (~150–300KB) TRƯỚC khi deploy 7C.
+
+---
+
 ## 2026-07-20 — REDESIGN UI: xong toàn bộ trang chính (chưa commit) + code thumbnail CV
 
 **Ngày làm redesign đậm nhất. Lần thử 1 (tự đề xuất gu tím) bị chê "trống/nhạt" → REVERT hết. Lần 2: user gửi MOCKUP (sidebar layout) → làm theo, chạy tốt. Verify cuối: `npm run build` PASS (2858 modules), `mvnw compile` PASS.**
