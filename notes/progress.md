@@ -6,6 +6,40 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-07-21 (2) — PHASE 7C DEPLOY: XONG. App đã LIVE + test end-to-end PASS
+
+**User tự thao tác dashboard theo `docs/deployment.md`, mình hướng dẫn từng bước + verify bằng curl. Toàn bộ smoke test PASS (đăng nhập Google → tạo đơn → analytics → upload CV).**
+
+**URL production:**
+- Frontend (Vercel): **https://applyist.vercel.app**
+- Backend (Render): **https://applyist-api.onrender.com**
+- DB: Neon Postgres, region `ap-southeast-1` (Singapore) — khớp region Render
+
+**Cấu hình thực tế (khác/bổ sung so với `docs/deployment.md`):**
+- **Neon connection string dạng query-param** (`jdbc:postgresql://host/neondb?user=...&password=...&sslmode=require&channelBinding=require`) → tách thành `DB_HOST`/`DB_PORT=5432`/`DB_NAME=neondb`/`DB_USER`/`DB_PASSWORD` + `DB_PARAMS=?sslmode=require`.
+- **BỎ `-pooler` khỏi host** (dùng endpoint trực tiếp, không qua PgBouncer): Flyway dùng **session-level advisory lock** để chống 2 instance cùng migrate — transaction pooling có thể làm lock không nhả/treo. App cũng đã có HikariCP pool riêng (`maximum-pool-size: 20`), chồng thêm tầng pool không lợi gì.
+- **BỎ `channelBinding=require`**: không chắc pgjdbc bản trong project hỗ trợ tham số này; `sslmode=require` đã đủ mã hoá. Siết thêm sau nếu cần.
+- **`SPRING_PROFILES_ACTIVE=prod` BẮT BUỘC** (user suýt để `dev`). Để `dev` sẽ: (1) Redis health indicator vẫn bật → `/actuator/health` DOWN → **Render health check fail, service bị coi là chết**; (2) `show-sql` + `jdbc.bind: TRACE` in **mọi SQL kèm tham số** (email, token, nội dung CV) ra log Render; (3) `server.error.include-message` chưa tắt → lộ chi tiết lỗi cho client.
+- Render: Root Directory `backend`, Runtime Docker, region Singapore, Health Check Path `/actuator/health`, Instance Free. KHÔNG set `PORT` (Render tự inject), KHÔNG set `REDIS_*`.
+- Vercel: Root Directory `frontend`, preset Vite. 3 biến `VITE_*` (đặt cho cả Production + Preview — nếu chỉ Production thì bản preview build thiếu `VITE_API_BASE_URL` → Zod trong `env.ts` throw → **trang trắng**). KHÔNG bật Sensitive cho biến `VITE_*` (chúng vốn public vì Vite nướng vào JS; bật chỉ làm mình không xem lại được để debug).
+- **Tên domain:** `job-tracker-ai.vercel.app` đã bị người khác lấy (Vercel tự thêm hậu tố → `job-tracker-ai-eosin`). Đổi Project Name **KHÔNG tự gỡ domain cũ** — phải vào Settings→Domains **Add Domain** `applyist.vercel.app` thủ công rồi Remove domain cũ.
+
+**Phụ thuộc vòng (thứ tự bắt buộc):** Neon → Render (2 biến `APP_CORS_ALLOWED_ORIGINS`/`GOOGLE_REDIRECT_URI` điền tạm localhost) → Vercel (`VITE_API_BASE_URL` = URL Render **+ `/api/v1`**) → **quay lại Render** sửa 2 biến bằng URL Vercel thật → Google Console thêm JS origin + redirect URI. Mọi URL **KHÔNG có `/` ở cuối** (browser gửi header `Origin` không slash → so chuỗi lệch là CORS chặn).
+
+**UptimeRobot** (chống spin-down Render free 15 phút): monitor HTTP(s) → **`https://applyist-api.onrender.com/actuator/info`**, interval 10 phút, method HEAD (đã verify HEAD trả 200 — Spring MVC tự xử lý HEAD cho endpoint GET), auth None, status codes 2xx/3xx.
+- **Ping `/actuator/info` CHỨ KHÔNG `/actuator/health`**: health có DataSource health indicator → mỗi lần ping là 1 query xuống Neon → **Neon không bao giờ scale-to-zero, đốt hết compute-hours gói free**. `/actuator/info` trả `{}`, không chạm DB.
+- **Cold start đo thật > 60 giây** (`curl -m 60` timeout HTTP 000, gọi lại ngay sau đó 0.49s) → nên nâng Timeout monitor lên 60s nếu gói cho chỉnh, tránh cảnh báo giả sau mỗi lần redeploy.
+- Render free ~750 instance-hours/tháng cho cả tài khoản; chạy 24/7 tốn ~730h → chỉ đủ **1** service.
+
+**2 vấn đề nhỏ phát hiện lúc verify (CHƯA sửa, ngoài scope deploy):**
+1. **`/v3/api-docs` trả 500 trên prod** → Swagger UI không dùng được ở prod (local vẫn OK). Không ảnh hưởng app.
+2. **Đường dẫn không tồn tại trả 500 thay vì 404** (vd `POST /api/v1/auth/khong-ton-tai`) — `GlobalExceptionHandler` chưa bắt riêng `NoHandlerFoundException` nên rơi vào catch-all `INTERNAL_ERROR`. Lỗi có sẵn từ trước, không do deploy.
+- Ghi chú: `/applications` (thiếu tiền tố) trả **401 chứ không phải 404** vì Spring Security `.anyRequest().authenticated()` chặn trước khi định tuyến → 401 KHÔNG chứng minh được đường dẫn đúng; dùng endpoint permitAll (`POST /api/v1/auth/refresh` → 400 validation) để verify tiền tố `/api/v1`.
+
+**CÒN LẠI CỦA PHASE 7: chỉ còn 7B-3 — README.md hoàn chỉnh + screenshots.** Nên bổ sung vào README: link demo live, hướng dẫn setup local, kiến trúc, known issues (2 mục trên + ảnh nền 2MB).
+
+---
+
 ## 2026-07-21 — Thương hiệu "Applyist" (logo + banner Login) + debounce search — ĐÃ COMMIT + PUSH
 
 **User tự thiết kế logo + banner marketing, bỏ vào `frontend/src/assets/`. Verify: `tsc` PASS · `eslint` 0 lỗi · `npm run build` PASS. Commit `edb3610` (thương hiệu, 10 file) + `38d428a` (debounce search, 1 file), đã push.**
