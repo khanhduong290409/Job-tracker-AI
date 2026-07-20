@@ -3,7 +3,7 @@ import { z } from 'zod';
 const envSchema = z.object({
   VITE_API_BASE_URL: z.url(), // phải là URL hợp lệ
   VITE_GOOGLE_CLIENT_ID: z.string().default(''),// chuỗi bất kỳ, mặc định là ''
-  VITE_APP_NAME: z.string().min(1).default('Job Tracker AI'),// chuỗi, không được rỗng
+  VITE_APP_NAME: z.string().min(1).default('Applyist'),// chuỗi, không được rỗng
 });
 
 const parsed = envSchema.safeParse(import.meta.env);// đọc file .env và kiểm tra

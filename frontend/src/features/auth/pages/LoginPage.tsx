@@ -1,6 +1,7 @@
-import { ClipboardList, Sparkles, Bell } from 'lucide-react';
 import { useGoogleLogin } from '../hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import loginBackground from '@/assets/background_login.png';
+import logo from '@/assets/logo.png';
 
 function GoogleIcon() {
   return (
@@ -13,72 +14,47 @@ function GoogleIcon() {
   );
 }
 
-const FEATURES = [
-  { icon: ClipboardList, text: 'Theo dõi mọi đơn ứng tuyển ở một nơi' },
-  { icon: Sparkles, text: 'AI phân tích độ khớp CV với JD' },
-  { icon: Bell, text: 'Nhắc nhở follow-up đúng lúc' },
-];
-
 export function LoginPage() {
   const { login } = useGoogleLogin();
 
   return (
-    <div className="flex min-h-screen">
-      {/* Panel trái — thương hiệu + giới thiệu (chỉ hiện từ lg) */}
-      <div className="hidden flex-col justify-between bg-primary p-12 text-primary-foreground lg:flex lg:w-1/2">
-        <div className="flex items-center gap-3">
-          <span className="grid h-11 w-11 place-items-center rounded-xl bg-white/15 text-xl font-bold">
-            J
-          </span>
-          <span className="text-lg font-semibold tracking-tight">Job Tracker AI</span>
+    <div className="relative flex min-h-screen items-center justify-center px-4 py-12">
+      {/* Ảnh nền phủ toàn màn hình. alt="" + aria-hidden vì đây là ảnh trang trí,
+          screen reader bỏ qua (nội dung chữ trong ảnh không phải nội dung thật của trang). */}
+      <img
+        src={loginBackground}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full object-cover"
+      />
+      {/* Lớp phủ tối + blur: làm chữ/mockup trong ảnh lùi thành hoạ tiết, card nổi lên rõ */}
+      <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-[2px]" />
+
+      {/* relative để card nằm TRÊN 2 lớp absolute phía trên */}
+      <div className="relative w-full max-w-sm">
+        <div className="rounded-2xl border border-white/10 bg-card p-8 shadow-2xl">
+          {/* Logo đặt TRONG card (nền sáng): bảng màu logo — chữ xanh gradient + tagline xám —
+              vốn dành cho nền sáng, đặt trên lớp phủ tối sẽ mất tương phản. */}
+          <img src={logo} alt="Applyist — Job Tracker AI" className="mx-auto h-28 w-auto" />
+
+          <h2 className="mt-6 text-center text-lg font-semibold text-gray-900">Đăng nhập</h2>
+          <p className="mt-1 text-center text-sm text-gray-500">
+            Tiếp tục với tài khoản Google của bạn.
+          </p>
+
+          <Button onClick={login} variant="outline" className="mt-6 w-full gap-3">
+            <GoogleIcon />
+            Đăng nhập bằng Google
+          </Button>
+
+          <p className="mt-4 text-center text-xs text-gray-400">
+            Chỉ cần tài khoản Google — không cần tạo tài khoản riêng.
+          </p>
         </div>
 
-        <div>
-          <h1 className="max-w-md text-4xl font-bold leading-tight tracking-tight text-balance">
-            Quản lý hành trình xin việc, thông minh hơn.
-          </h1>
-          <ul className="mt-8 space-y-4">
-            {FEATURES.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3 text-primary-foreground/90">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/15">
-                  <Icon className="h-4 w-4" />
-                </span>
-                {text}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <p className="text-sm text-primary-foreground/70">
+        <p className="mt-6 text-center text-xs text-white/50">
           Dành cho ứng viên IT — theo dõi đơn, phân tích CV, nhắc follow-up.
         </p>
-      </div>
-
-      {/* Panel phải — đăng nhập */}
-      <div className="flex flex-1 items-center justify-center bg-gray-50 px-4 py-12">
-        <div className="w-full max-w-sm">
-          {/* Thương hiệu gọn — chỉ hiện trên mobile (panel trái ẩn) */}
-          <div className="mb-8 flex flex-col items-center text-center lg:hidden">
-            <span className="grid h-14 w-14 place-items-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground shadow-sm">
-              J
-            </span>
-            <h1 className="mt-4 text-2xl font-bold tracking-tight text-gray-900">Job Tracker AI</h1>
-          </div>
-
-          <div className="rounded-2xl border bg-card p-8 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">Đăng nhập</h2>
-            <p className="mt-1 text-sm text-gray-500">Tiếp tục với tài khoản Google của bạn.</p>
-
-            <Button onClick={login} variant="outline" className="mt-6 w-full gap-3">
-              <GoogleIcon />
-              Đăng nhập bằng Google
-            </Button>
-
-            <p className="mt-4 text-center text-xs text-gray-400">
-              Chỉ cần tài khoản Google — không cần tạo tài khoản riêng.
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );

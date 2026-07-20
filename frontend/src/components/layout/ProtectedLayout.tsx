@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate, Outlet, useLocation, NavLink } from 'react-router-dom';
 import { ClipboardList, FileText, BarChart3, Settings, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import logoMark from '@/assets/logo-mark.png';
 import { useAuthStore } from '../../features/auth/store/auth-store';
 import { useLogout } from '../../features/auth/hooks/useAuth';
 import { SidebarSlotContext } from './sidebar-slot';
@@ -28,12 +29,15 @@ export function ProtectedLayout() {
     <SidebarSlotContext.Provider value={slotEl}>
       <div className="flex min-h-screen bg-gray-50">
         <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r bg-white">
-          {/* Logo */}
-          <div className="flex items-center gap-2 px-5 py-4">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-              J
+          {/* Logo — dùng bản CHỈ ICON vì ngay cạnh đã có chữ "Applyist" (bản lockup sẽ lặp chữ) */}
+          <div className="flex items-center gap-2.5 px-5 py-4">
+            <img src={logoMark} alt="" aria-hidden="true" className="h-8 w-8 object-contain" />
+            <span className="leading-tight">
+              <span className="block font-semibold tracking-tight">Applyist</span>
+              <span className="block text-[10px] uppercase tracking-wider text-gray-400">
+                Job Tracker AI
+              </span>
             </span>
-            <span className="font-semibold tracking-tight">Job Tracker</span>
           </div>
 
           {/* Nav chính */}
