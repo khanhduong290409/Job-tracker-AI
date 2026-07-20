@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Search } from 'lucide-react';
@@ -19,7 +19,7 @@ export function ApplicationListPage() {
   const [page, setPage] = useState(0);
   const [status, setStatus] = useState<ApplicationStatus | ''>('');
   const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState(''); // search đã "submit" — tách với input để không refetch mỗi keystroke
+  const [search, setSearch] = useState(''); // từ khoá đã debounce — tách với input để không refetch mỗi keystroke
 
   const params: ApplicationListParams = {
     page,
@@ -48,11 +48,15 @@ export function ApplicationListPage() {
     setPage(0);
   }
 
-  function handleSearchSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSearch(searchInput.trim());
-    setPage(0);
-  }
+  // Debounce: chờ ngừng gõ 300ms mới đẩy từ khoá vào params → gõ "google" chỉ tốn 1 request,
+  // không phải 6. Cleanup huỷ timer của lần gõ trước, nên chỉ lần cuối cùng chạy.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(0); // từ khoá mới → về trang đầu
+    }, 300);
+    return () => clearTimeout(timer);//huỷ timer của lần trước mỗi khi effect sắp chạy lại
+  }, [searchInput]);//tức là khi user gõ thì dòng return chạy để xoá timer đó nên khi ngừng gõ thì nó mới chạy settimeout
 
   const items = data?.items ?? [];
   const pagination = data?.pagination;
@@ -89,15 +93,16 @@ export function ApplicationListPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <form onSubmit={handleSearchSubmit} className="relative">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
+                type="search"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Tìm công ty / vị trí..."
                 className="h-10 w-56 rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
-            </form>
+            </div>
             <NotificationBell />
             <Button asChild>
               <Link to="/applications/new">+ Tạo đơn mới</Link>
