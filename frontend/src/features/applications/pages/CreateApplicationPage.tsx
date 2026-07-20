@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { isAxiosError } from 'axios';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Sparkles } from 'lucide-react';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -55,7 +56,7 @@ tóm lại: để tạo type tự động thì cần dùng z.infer<> nhưng <> c
 */
 
 const inputClass =
-  'block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500';
+  'block w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
 
 // Helper component nội bộ (không export → không vỡ fast-refresh)
 function Field({
@@ -196,138 +197,165 @@ export function CreateApplicationPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <Link to="/applications" className="text-sm text-blue-600 hover:underline">
-        ← Quay lại danh sách
+    <div className="mx-auto max-w-3xl px-6 py-6">
+      <Link
+        to="/applications"
+        className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Quay lại danh sách
       </Link>
-      <h1 className="mt-2 text-2xl font-bold text-gray-900">Tạo đơn ứng tuyển</h1>
+      <h1 className="mt-3 text-2xl font-bold tracking-tight text-gray-900">Tạo đơn ứng tuyển</h1>
+      <p className="mt-0.5 text-sm text-gray-500">Dán JD rồi để AI tự điền, hoặc nhập tay.</p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4">
-        <Field label="Tên công ty *" error={errors.companyName?.message}>
-          <input className={inputClass} {...register('companyName')} />
-        </Field>
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-6">
+        {/* ── Card 1: Thông tin cơ bản + JD + CV ── */}
+        <section className="rounded-xl border bg-card p-5 shadow-sm">
+          <h2 className="mb-4 text-base font-semibold text-gray-900">Thông tin cơ bản</h2>
 
-        <Field label="Vị trí *" error={errors.position?.message}>
-          <input className={inputClass} {...register('position')} />
-        </Field>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Tên công ty *" error={errors.companyName?.message}>
+                <input className={inputClass} {...register('companyName')} />
+              </Field>
+              <Field label="Vị trí *" error={errors.position?.message}>
+                <input className={inputClass} {...register('position')} />
+              </Field>
+            </div>
 
-        <Field label="Nội dung JD *" error={errors.jdContent?.message}>
-          <textarea rows={5} className={inputClass} {...register('jdContent')} />
-        </Field>
+            <Field label="Nội dung JD *" error={errors.jdContent?.message}>
+              <textarea rows={6} className={inputClass} {...register('jdContent')} />
+            </Field>
 
-        {/* AI auto-fill: trích JD → điền công ty/vị trí/địa điểm/hình thức/loại hình */}
-        <div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleExtract}
-            disabled={isExtracting || jdValue.trim().length < 10}
-          >
-            {isExtracting ? 'Đang phân tích...' : '✨ Phân tích JD & tự điền'}
-          </Button>
-          {extractError ? (
-            <p className="mt-1 text-xs text-red-600">{getErrorMessage(extractError)}</p>
-          ) : (
-            <p className="mt-1 text-xs text-gray-400">
-              AI tự điền công ty, vị trí, địa điểm, hình thức, loại hình từ JD.
-            </p>
-          )}
-        </div>
+            {/* AI auto-fill: trích JD → điền công ty/vị trí/địa điểm/hình thức/loại hình */}
+            <div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleExtract}
+                disabled={isExtracting || jdValue.trim().length < 10}
+              >
+                {isExtracting ? (
+                  'Đang phân tích...'
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Phân tích JD & tự điền
+                  </>
+                )}
+              </Button>
+              {extractError ? (
+                <p className="mt-1 text-xs text-red-600">{getErrorMessage(extractError)}</p>
+              ) : (
+                <p className="mt-1 text-xs text-gray-400">
+                  AI tự điền công ty, vị trí, địa điểm, hình thức, loại hình từ JD.
+                </p>
+              )}
+            </div>
 
-        <Field label="CV ứng tuyển" error={errors.cvVersionId?.message}>
-          <select className={inputClass} {...register('cvVersionId')}>
-            <option value="">-- Không gắn CV --</option>
-            {(cvList ?? []).map((cv) => (
-              <option key={cv.id} value={cv.id}>
-                {cv.label}
-                {cv.parseStatus === 'COMPLETED' ? '' : ' (chưa parse xong)'}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-gray-400">Gắn CV để dùng tính năng phân tích độ khớp CV–JD.</p>
-        </Field>
+            <Field label="CV ứng tuyển" error={errors.cvVersionId?.message}>
+              <select className={inputClass} {...register('cvVersionId')}>
+                <option value="">-- Không gắn CV --</option>
+                {(cvList ?? []).map((cv) => (
+                  <option key={cv.id} value={cv.id}>
+                    {cv.label}
+                    {cv.parseStatus === 'COMPLETED' ? '' : ' (chưa parse xong)'}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-400">Gắn CV để dùng tính năng phân tích độ khớp CV–JD.</p>
+            </Field>
+          </div>
+        </section>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Nguồn *" error={errors.source?.message}>
-            <select className={inputClass} {...register('source')}>
-              <option value="">-- Chọn nguồn --</option>
-              {APPLICATION_SOURCES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          </Field>
+        {/* ── Card 2: Chi tiết đơn ── */}
+        <section className="rounded-xl border bg-card p-5 shadow-sm">
+          <h2 className="mb-4 text-base font-semibold text-gray-900">Chi tiết đơn</h2>
 
-          <Field label="Trạng thái" error={errors.status?.message}>
-            <select className={inputClass} {...register('status')}>
-              {APPLICATION_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {APPLICATION_STATUS_CONFIG[s].label}
-                </option>
-              ))}
-            </select>
-          </Field>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Nguồn *" error={errors.source?.message}>
+              <select className={inputClass} {...register('source')}>
+                <option value="">-- Chọn nguồn --</option>
+                {APPLICATION_SOURCES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-          <Field label="Địa điểm" error={errors.location?.message}>
-            <input className={inputClass} {...register('location')} />
-          </Field>
+            <Field label="Trạng thái" error={errors.status?.message}>
+              <select className={inputClass} {...register('status')}>
+                {APPLICATION_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {APPLICATION_STATUS_CONFIG[s].label}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-          <Field label="Domain công ty" error={errors.companyDomain?.message}>
-            <input className={inputClass} placeholder="vd: techcorp.com" {...register('companyDomain')} />
-          </Field>
+            <Field label="Địa điểm" error={errors.location?.message}>
+              <input className={inputClass} {...register('location')} />
+            </Field>
 
-          <Field label="Hình thức làm việc" error={errors.workType?.message}>
-            <select className={inputClass} {...register('workType')}>
-              <option value="">-- Không rõ --</option>
-              {WORK_TYPES.map((w) => (
-                <option key={w} value={w}>
-                  {w}
-                </option>
-              ))}
-            </select>
-          </Field>
+            <Field label="Domain công ty" error={errors.companyDomain?.message}>
+              <input className={inputClass} placeholder="vd: techcorp.com" {...register('companyDomain')} />
+            </Field>
 
-          <Field label="Loại hình" error={errors.employmentType?.message}>
-            <select className={inputClass} {...register('employmentType')}>
-              <option value="">-- Không rõ --</option>
-              {EMPLOYMENT_TYPES.map((et) => (
-                <option key={et} value={et}>
-                  {et}
-                </option>
-              ))}
-            </select>
-          </Field>
+            <Field label="Hình thức làm việc" error={errors.workType?.message}>
+              <select className={inputClass} {...register('workType')}>
+                <option value="">-- Không rõ --</option>
+                {WORK_TYPES.map((w) => (
+                  <option key={w} value={w}>
+                    {w}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-          <Field label="Lương tối thiểu" error={errors.salaryMin?.message}>
-            <input type="number" min={0} className={inputClass} {...register('salaryMin')} />
-          </Field>
+            <Field label="Loại hình" error={errors.employmentType?.message}>
+              <select className={inputClass} {...register('employmentType')}>
+                <option value="">-- Không rõ --</option>
+                {EMPLOYMENT_TYPES.map((et) => (
+                  <option key={et} value={et}>
+                    {et}
+                  </option>
+                ))}
+              </select>
+            </Field>
 
-          <Field label="Lương tối đa" error={errors.salaryMax?.message}>
-            <input type="number" min={0} className={inputClass} {...register('salaryMax')} />
-          </Field>
+            <Field label="Lương tối thiểu" error={errors.salaryMin?.message}>
+              <input type="number" min={0} className={inputClass} {...register('salaryMin')} />
+            </Field>
 
-          <Field label="Đơn vị tiền" error={errors.salaryCurrency?.message}>
-            <input className={inputClass} placeholder="VND / USD" {...register('salaryCurrency')} />
-          </Field>
+            <Field label="Lương tối đa" error={errors.salaryMax?.message}>
+              <input type="number" min={0} className={inputClass} {...register('salaryMax')} />
+            </Field>
 
-          <Field label="Ngày nộp" error={errors.appliedDate?.message}>
-            <input type="date" max={today} className={inputClass} {...register('appliedDate')} />
-          </Field>
+            <Field label="Đơn vị tiền" error={errors.salaryCurrency?.message}>
+              <input className={inputClass} placeholder="VND / USD" {...register('salaryCurrency')} />
+            </Field>
 
-          <Field label="Link JD" error={errors.jdUrl?.message}>
-            <input className={inputClass} placeholder="https://..." {...register('jdUrl')} />
-          </Field>
+            <Field label="Ngày nộp" error={errors.appliedDate?.message}>
+              <input type="date" max={today} className={inputClass} {...register('appliedDate')} />
+            </Field>
 
-          <Field label="Chi tiết nguồn" error={errors.sourceDetail?.message}>
-            <input className={inputClass} placeholder="vd: tên người giới thiệu" {...register('sourceDetail')} />
-          </Field>
-        </div>
+            <Field label="Link JD" error={errors.jdUrl?.message}>
+              <input className={inputClass} placeholder="https://..." {...register('jdUrl')} />
+            </Field>
 
-        <Field label="Ghi chú" error={errors.notes?.message}>
-          <textarea rows={3} className={inputClass} {...register('notes')} />
-        </Field>
+            <Field label="Chi tiết nguồn" error={errors.sourceDetail?.message}>
+              <input className={inputClass} placeholder="vd: tên người giới thiệu" {...register('sourceDetail')} />
+            </Field>
+          </div>
+
+          <div className="mt-4">
+            <Field label="Ghi chú" error={errors.notes?.message}>
+              <textarea rows={3} className={inputClass} {...register('notes')} />
+            </Field>
+          </div>
+        </section>
 
         {error && <p className="text-sm text-red-600">{getErrorMessage(error)}</p>}
 

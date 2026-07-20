@@ -26,7 +26,7 @@ export function CallbackPage() {
       .googleLogin(code, `${window.location.origin}/auth/callback`)
       .then(({ user, accessToken, refreshToken }) => {
         setAuth(user, accessToken, refreshToken);
-        navigate('/dashboard', { replace: true });
+        navigate('/applications', { replace: true });//replace:true bên dưới có giải thích
       })
       .catch(() => setHasError(true));
   }, [code, navigate, setAuth]);
@@ -36,7 +36,7 @@ export function CallbackPage() {
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
           <p className="text-sm text-gray-600">Đăng nhập thất bại.</p>
-          <a href="/login" className="mt-2 inline-block text-sm text-indigo-600 hover:underline">
+          <a href="/login" className="mt-2 inline-block text-sm text-primary hover:underline">
             Thử lại
           </a>
         </div>
@@ -47,7 +47,7 @@ export function CallbackPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="flex flex-col items-center gap-3">
-        <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
         <p className="text-sm text-gray-500">Đang xác thực...</p>
       </div>
     </div>

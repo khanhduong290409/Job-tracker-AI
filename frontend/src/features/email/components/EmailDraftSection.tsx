@@ -88,8 +88,8 @@ export function EmailDraftSection({ applicationId }: Props) {
   const toneLabel = tone ? (TONE_LABELS[tone] ?? tone) : null;
 
   return (
-    <div className="mt-8 rounded-lg border border-gray-200 bg-white p-4">
-      <h2 className="text-lg font-semibold text-gray-900">Soạn email gửi HR (AI)</h2>
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
+      <h2 className="text-base font-semibold text-gray-900">Soạn email gửi HR (AI)</h2>
 
       {/* Input: chọn loại email + ghi chú thêm */}
       <div className="mt-3 space-y-2">

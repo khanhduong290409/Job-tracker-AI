@@ -2,6 +2,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   LabelList,
   ResponsiveContainer,
   Tooltip,
@@ -10,6 +11,7 @@ import {
 } from 'recharts';
 import { APPLICATION_STATUS_CONFIG } from '@/features/applications/status-meta';
 import { useFunnel } from '../api/queries';
+import { rampColors } from '../chart-colors';
 
 /**
  * US-ANALYTICS-002 — phễu tuyển dụng APPLIED → PHONE_SCREEN → TECHNICAL_INTERVIEW → ONSITE → OFFER.
@@ -20,8 +22,7 @@ import { useFunnel } from '../api/queries';
  * trục Y. conversionRate hiện trong tooltip.
  */
 
-// Palette dataviz (light): series-1 blue cho fill, muted ink cho trục, hairline cho grid.
-const BAR_COLOR = '#2a78d6';
+// Mỗi stage 1 màu riêng (categorical) — muted ink cho trục, hairline cho grid.
 const AXIS_INK = '#898781';
 const GRID_LINE = '#e1e0d9';
 
@@ -74,15 +75,15 @@ export function FunnelChart() {
   //.every() là method của mảng, dùng để hỏi: "TẤT CẢ phần tử có thỏa điều kiện không?"
   // = true khi tất cả stage đều có count === 0
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h2 className="mb-4 text-lg font-semibold text-gray-900">Phễu tuyển dụng</h2>
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
+      <h2 className="mb-4 text-base font-semibold text-gray-900">Phễu tuyển dụng</h2>
 
       {isEmpty ? (
         <p className="py-12 text-center text-sm text-gray-500">
           Chưa có đơn nào đi qua các vòng tuyển dụng.
         </p>
       ) : (
-        <ResponsiveContainer width="100%" height={280}>
+        <ResponsiveContainer width="100%" height={200}>
           <BarChart
             data={rows}
             layout="vertical"//"horizontal(nghĩa là ngang)" nhưng thật ra là cột đứng, còn vertical là cột ngang
@@ -98,7 +99,11 @@ export function FunnelChart() {
               tick={{ fill: AXIS_INK, fontSize: 12 }}
             />
             <Tooltip content={<FunnelTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
-            <Bar dataKey="count" fill={BAR_COLOR} radius={[0, 4, 4, 0]} barSize={24}>
+            <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={24}>
+              {/* Mỗi stage 1 sắc, chuyển dần đậm → nhạt theo dải 2 tông */}
+              {rampColors(rows.length).map((color, i) => (
+                <Cell key={i} fill={color} />
+              ))}
               {/* Direct label: số đơn ở cuối thanh (giá trị chính) */}
               <LabelList dataKey="count" position="right" fill="#0b0b0b" fontSize={12} />
             </Bar>

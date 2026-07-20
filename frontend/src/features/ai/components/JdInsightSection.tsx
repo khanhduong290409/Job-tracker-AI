@@ -22,9 +22,9 @@ export function JdInsightSection({ applicationId }: Props) {
   }
 
   return (
-    <div className="mt-8 rounded-lg border border-gray-200 bg-white p-4">
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-gray-900">Phân tích JD (AI)</h2>
+        <h2 className="text-base font-semibold text-gray-900">Phân tích JD (AI)</h2>
         {!data && (
           <Button size="sm" onClick={analyze} disabled={isFetching}>
             {isFetching ? 'Đang phân tích...' : 'Phân tích JD'}

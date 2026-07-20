@@ -1,48 +1,74 @@
 import { Link } from 'react-router-dom';
+import { MapPin, Briefcase, CalendarDays } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { ApplicationListItem } from '../types';
 import { ApplicationStatusBadge } from './ApplicationStatusBadge';
+import { StatusStepper } from './StatusStepper';
+
+// Bảng màu avatar — chọn theo id để mỗi công ty có 1 sắc riêng, sinh động (như mockup).
+const AVATAR_COLORS = [
+  'bg-violet-100 text-violet-700',
+  'bg-blue-100 text-blue-700',
+  'bg-amber-100 text-amber-700',
+  'bg-emerald-100 text-emerald-700',
+  'bg-rose-100 text-rose-700',
+  'bg-cyan-100 text-cyan-700',
+];
 
 interface ApplicationCardProps {
   application: ApplicationListItem;
 }
 
 export function ApplicationCard({ application }: ApplicationCardProps) {
-  // Gộp các field phụ có giá trị thành 1 dòng meta (bỏ field null).
-  const meta = [application.source, application.location, application.workType]
-    .filter(Boolean)// lọc bỏ các giá trị falsy ra khỏi mảng.
-    .join(' · ');
-/*
-6 giá trị falsy trong JS 
+  const avatarColor = AVATAR_COLORS[application.id % AVATAR_COLORS.length];
 
-false
-0
-''        // string rỗng
-null
-undefined
-NaN
-*/
   return (
     <Link
       to={`/applications/${application.id}`}
-      className="block rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:border-gray-300 hover:shadow"
+      className="block rounded-xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
     >
-      <div className="flex items-start justify-between gap-4">
-
+      {/* Đầu card: avatar + tên/vị trí + badge trạng thái */}
+      <div className="flex items-start gap-3">
+        <span
+          className={cn(
+            'grid h-11 w-11 shrink-0 place-items-center rounded-xl text-base font-bold uppercase',
+            avatarColor,
+          )}
+        >
+          {application.companyName.charAt(0)}
+        </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h3 className="truncate font-semibold text-gray-900">{application.companyName}</h3>
-            <span className="shrink-0">
-              <ApplicationStatusBadge status={application.status} />
-            </span>
-          </div>
-          <p className="mt-1 truncate text-sm text-gray-700">{application.position}</p>
-          {meta && <p className="mt-1 truncate text-xs text-gray-500">{meta}</p>}
+          <h3 className="truncate font-semibold text-gray-900">{application.companyName}</h3>
+          <p className="truncate text-sm text-gray-500">{application.position}</p>
         </div>
+        <span className="shrink-0">
+          <ApplicationStatusBadge status={application.status} />
+        </span>
+      </div>
 
-        <div className="shrink-0 text-right text-xs text-gray-400">
-          {application.appliedDate ? `Nộp: ${application.appliedDate}` : 'Chưa nộp'}
-        </div>
+      {/* Stepper tiến trình */}
+      <div className="mt-5">
+        <StatusStepper status={application.status} />
+      </div>
 
+      {/* Meta: địa điểm · hình thức · ngày nộp */}
+      <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 border-t pt-3 text-xs text-gray-500">
+        {application.location && (
+          <span className="flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5" />
+            {application.location}
+          </span>
+        )}
+        {application.workType && (
+          <span className="flex items-center gap-1">
+            <Briefcase className="h-3.5 w-3.5" />
+            {application.workType}
+          </span>
+        )}
+        <span className="flex items-center gap-1">
+          <CalendarDays className="h-3.5 w-3.5" />
+          {application.appliedDate ?? 'Chưa nộp'}
+        </span>
       </div>
     </Link>
   );

@@ -5,7 +5,7 @@ export function PublicLayout() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/applications" replace />;
   }
 
   return <Outlet />;

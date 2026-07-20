@@ -2,6 +2,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   LabelList,
   ResponsiveContainer,
   Tooltip,
@@ -10,6 +11,7 @@ import {
 } from 'recharts';
 import type { ApplicationSource } from '@/types/common';
 import { useSources } from '../api/queries';
+import { rampColors } from '../chart-colors';
 
 /**
  * US-ANALYTICS-004 — hiệu quả theo nguồn ứng tuyển (LinkedIn, ITviec...).
@@ -19,7 +21,6 @@ import { useSources } from '../api/queries';
  * dual-axis). 1 hue xanh: bar length đã tải magnitude, nguồn phân biệt bằng nhãn trục Y.
  */
 
-const BAR_COLOR = '#2a78d6';
 const AXIS_INK = '#898781';
 const GRID_LINE = '#e1e0d9';
 
@@ -82,14 +83,15 @@ export function SourcesChart() {
   }));
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h2 className="mb-4 text-lg font-semibold text-gray-900">Hiệu quả theo nguồn</h2>
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
+      <h2 className="mb-4 text-base font-semibold text-gray-900">Hiệu quả theo nguồn</h2>
 
       {rows.length === 0 ? (
         <p className="py-12 text-center text-sm text-gray-500">Chưa có đơn nào để thống kê nguồn.</p>
       ) : (
-        // Cao theo số nguồn để bar không quá dày/mỏng (mỗi nguồn ~44px, tối thiểu 160px).
-        <ResponsiveContainer width="100%" height={Math.max(rows.length * 44, 160)}>
+        // Cùng chiều cao với FunnelChart (200) để 2 card cạnh nhau đều nhau, không dư khoảng trống.
+        <ResponsiveContainer width="100%" height={200}>
+
           <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 48, bottom: 4, left: 8 }}>
             <CartesianGrid horizontal={false} stroke={GRID_LINE} />
             <XAxis type="number" allowDecimals={false} tick={{ fill: AXIS_INK, fontSize: 12 }} />
@@ -100,7 +102,11 @@ export function SourcesChart() {
               tick={{ fill: AXIS_INK, fontSize: 12 }}
             />
             <Tooltip content={<SourcesTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
-            <Bar dataKey="count" fill={BAR_COLOR} radius={[0, 4, 4, 0]} barSize={24}>
+            <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={24}>
+              {/* Mỗi nguồn 1 sắc, chuyển dần đậm → nhạt theo dải 2 tông */}
+              {rampColors(rows.length).map((color, i) => (
+                <Cell key={i} fill={color} />
+              ))}
               <LabelList dataKey="count" position="right" fill="#0b0b0b" fontSize={12} />
             </Bar>
           </BarChart>

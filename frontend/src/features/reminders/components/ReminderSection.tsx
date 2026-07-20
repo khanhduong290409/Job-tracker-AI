@@ -61,11 +61,11 @@ export function ReminderSection({ applicationId }: ReminderSectionProps) {
   const items = reminders ?? [];
 
   return (
-    <div className="mt-8">
-      <h2 className="text-lg font-semibold text-gray-900">Nhắc nhở</h2>
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
+      <h2 className="text-base font-semibold text-gray-900">Nhắc nhở</h2>
 
       {/* Form tạo reminder CUSTOM */}
-      <form onSubmit={submit} className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-white p-4">
+      <form onSubmit={submit} className="mt-3 space-y-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}

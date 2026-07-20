@@ -28,8 +28,8 @@ export function UploadCvForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-      <h2 className="text-lg font-semibold text-gray-900">Tải lên CV</h2>
+    <form onSubmit={handleSubmit} className="rounded-xl border bg-card p-5 shadow-sm">
+      <h2 className="text-base font-semibold text-gray-900">Tải lên CV</h2>
 
       <div className="mt-4 space-y-3">
         <div>
@@ -42,7 +42,7 @@ export function UploadCvForm() {
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="VD: CV intern fresher 2025"
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
 
@@ -56,7 +56,7 @@ export function UploadCvForm() {
             type="file"
             accept=".pdf"
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:rounded-md file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-100"
+            className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:rounded-md file:border-0 file:bg-primary/10 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary hover:file:bg-primary/20"
           />
         </div>
       </div>

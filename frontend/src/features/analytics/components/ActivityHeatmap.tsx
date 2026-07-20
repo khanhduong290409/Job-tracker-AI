@@ -9,7 +9,7 @@ import { useActivity } from '../api/queries';
  * recharts không hợp heatmap → dùng grid div thuần.
  */
 
-// Sequential blue ramp (palette.md): 0 = xám nhạt (lùi về nền), tăng dần đậm theo số hoạt động.
+// Sequential blue ramp: 0 = xám nhạt (lùi về nền), tăng dần đậm theo số hoạt động.
 const EMPTY_COLOR = '#eef1f4';
 const LEVELS = [
   { min: 1, color: '#9ec5f4' },
@@ -67,8 +67,8 @@ export function ActivityHeatmap() {
   });//mục đích là nếu tháng tuần này # tháng tuần trước đó thì hiển thị nhãn còn ko thì không hiển thị
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4">
-      <h2 className="mb-4 text-lg font-semibold text-gray-900">Hoạt động 1 năm qua</h2>
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
+      <h2 className="mb-4 text-base font-semibold text-gray-900">Hoạt động 1 năm qua</h2>
 
       <div className="overflow-x-auto">
         <div className="inline-flex flex-col gap-1">

@@ -11,8 +11,11 @@ import { ActivityHeatmap } from '../components/ActivityHeatmap';
  */
 export function AnalyticsPage() {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="text-2xl font-semibold text-gray-900">Phân tích</h1>
+    <div className="mx-auto max-w-6xl px-6 py-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Phân tích</h1>
+        <p className="mt-0.5 text-sm text-gray-500">Tổng quan hành trình xin việc của bạn</p>
+      </div>
 
       <div className="mt-6 space-y-6">
         <OverviewCards />

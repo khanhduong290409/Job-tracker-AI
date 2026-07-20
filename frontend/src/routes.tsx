@@ -11,17 +11,6 @@ import { ApplicationDetailPage } from './features/applications/pages/Application
 import { SettingsPage } from './features/settings/pages/SettingsPage';
 import { AnalyticsPage } from './features/analytics/pages/AnalyticsPage';
 
-// Phase 3/4/... sẽ replace các placeholder bên dưới bằng page thật
-
-function DashboardPlaceholder() {
-  return (
-    <div className="p-8">
-      <h1 className="text-2xl font-semibold">Dashboard (Phase 3)</h1>
-      <p className="mt-2 text-sm text-gray-600">Applications list sẽ implement ở Phase 3.</p>
-    </div>
-  );
-}
-
 function NotFoundPlaceholder() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -42,8 +31,7 @@ export function AppRoutes() {
       </Route>
 
       <Route element={<ProtectedLayout />}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<DashboardPlaceholder />} />
+        <Route path="/" element={<Navigate to="/applications" replace />} />
         <Route path="/cv" element={<CvListPage />} />
         <Route path="/cv/:id" element={<CvDetailPage />} />
         {/* Route tĩnh /new đặt trước /:id để không bị match nhầm thành id */}

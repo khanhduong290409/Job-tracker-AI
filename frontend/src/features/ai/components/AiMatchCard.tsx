@@ -55,9 +55,9 @@ export function AiMatchCard({ applicationId }: Props) {
   const busy = isFetching || isReanalyzing;
 
   return (
-    <div className="mt-8 rounded-lg border border-gray-200 bg-white p-4">
+    <div className="rounded-xl border bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-gray-900">Độ khớp CV–JD (AI)</h2>
+        <h2 className="text-base font-semibold text-gray-900">Độ khớp CV–JD (AI)</h2>
         {data ? (
           <Button size="sm" variant="outline" onClick={() => reanalyze()} disabled={busy}>
             {isReanalyzing ? 'Đang phân tích...' : 'Phân tích lại'}

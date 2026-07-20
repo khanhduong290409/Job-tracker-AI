@@ -49,8 +49,6 @@ export const useAuthStore = create<AuthState>((set) => ({
 tại sao ta cần lưu AuthState vào zustand ? trong khi thao tác nó cũng chỉ là ở phạm vi localstorage?
 
 Vì localStorage và Zustand phục vụ 2 mục đích khác nhau:
-
 localStorage — lưu dữ liệu lâu dài, tồn tại khi refresh trang. Nhưng React không biết localStorage thay đổi → component không tự re-render.
-
 Zustand — lưu state trong memory, React theo dõi được → component tự re-render khi state thay đổi.
 */
