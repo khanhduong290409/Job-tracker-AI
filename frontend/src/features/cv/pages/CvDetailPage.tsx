@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LoadingState } from '@/components/ui/query-states';
 import { useCv, useReparseCv, useUpdateParsedData } from '../api/queries';
@@ -30,43 +31,47 @@ export function CvDetailPage() {
   const isParsing = cv.parseStatus === 'PENDING' || cv.parseStatus === 'PROCESSING';
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <Link to="/cv" className="text-sm text-blue-600 hover:underline">
-        ← Quay lại danh sách CV
-      </Link>
+    <div className="mx-auto max-w-6xl px-6 py-6">
+      <BackLink />
 
-      <div className="mt-2 flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">{cv.label}</h1>
-        <CvParseStatusBadge status={cv.parseStatus} />
+      {/* Header */}
+      <div className="mt-3 flex items-start gap-4 rounded-xl border bg-card p-5 shadow-sm">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+          <FileText className="h-6 w-6" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-bold tracking-tight text-gray-900">{cv.label}</h1>
+            <CvParseStatusBadge status={cv.parseStatus} />
+          </div>
+          <p className="mt-0.5 truncate text-sm text-gray-500">{cv.fileName}</p>
+        </div>
       </div>
-      <p className="mt-1 text-sm text-gray-500">{cv.fileName}</p>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Cột trái: PDF */}
-        <div className="lg:sticky lg:top-4 lg:self-start">
-          <iframe
-            src={cv.fileUrl}
-            title="CV PDF"
-            className="h-[600px] w-full rounded-md border border-gray-200"
-          />
+        <div className="lg:sticky lg:top-6 lg:self-start">
+          <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+            <iframe src={cv.fileUrl} title="CV PDF" className="h-[600px] w-full" />
+          </div>
           <a
             href={cv.fileUrl}
             target="_blank"
             rel="noreferrer"
-            className="mt-2 inline-block text-sm text-blue-600 hover:underline"
+            className="mt-2 inline-block text-sm text-primary hover:underline"
           >
             Mở PDF trong tab mới ↗
           </a>
         </div>
 
         {/* Cột phải: dữ liệu parse */}
-        <div>
+        <div className="rounded-xl border bg-card p-5 shadow-sm">
           {isParsing ? (
             <p className="text-sm text-gray-500">Đang phân tích CV bằng AI... (tự cập nhật)</p>
           ) : (
             <>
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Dữ liệu CV</h2>
+                <h2 className="text-base font-semibold text-gray-900">Dữ liệu CV</h2>
                 <Button type="button" variant="outline" size="sm" onClick={() => reparse()} disabled={isReparsing}>
                   {isReparsing ? 'Đang gửi...' : 'Phân tích lại bằng AI'}
                 </Button>
@@ -95,12 +100,19 @@ export function CvDetailPage() {
   );
 }
 
+function BackLink() {
+  return (
+    <Link to="/cv" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800">
+      <ArrowLeft className="h-4 w-4" />
+      Quay lại danh sách CV
+    </Link>
+  );
+}
+
 function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <Link to="/cv" className="text-sm text-blue-600 hover:underline">
-        ← Quay lại danh sách CV
-      </Link>
+    <div className="mx-auto max-w-6xl px-6 py-6">
+      <BackLink />
       {/* div (không phải p) để chứa được cả text lẫn LoadingState (div) mà vẫn hợp lệ HTML */}
       <div className="mt-4 text-sm text-gray-600">{children}</div>
     </div>

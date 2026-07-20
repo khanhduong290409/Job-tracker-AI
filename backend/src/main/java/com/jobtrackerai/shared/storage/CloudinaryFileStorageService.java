@@ -28,7 +28,10 @@ public class CloudinaryFileStorageService implements FileStorageService {
                     ObjectUtils.asMap(
                             "public_id",     filename,
                             "folder",        "cv-uploads",
-                            "resource_type", "raw"
+                            // "image" (không phải "raw") để Cloudinary sinh được thumbnail trang đầu PDF
+                            // (pg_1) + phục vụ inline. Cần bật "Allow delivery of PDF and ZIP files" trong
+                            // Cloudinary Security settings, nếu không delivery PDF sẽ bị chặn (401).
+                            "resource_type", "image"
                     )
             );
             String secureUrl = (String) uploadResult.get("secure_url");
