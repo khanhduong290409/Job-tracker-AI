@@ -3,7 +3,9 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { LoadingState } from '@/components/ui/query-states';
+import { useToast } from '@/components/ui/toast';
 import { AiMatchCard } from '@/features/ai/components/AiMatchCard';
 import { JdInsightSection } from '@/features/ai/components/JdInsightSection';
 import { useCvList } from '@/features/cv/api/queries';
@@ -52,6 +54,8 @@ export function ApplicationDetailPage() {
   const { id } = useParams();
   const appId = Number(id);
   const navigate = useNavigate();
+  const toast = useToast();
+  const confirmDialog = useConfirm();
 
   const { data: app, isLoading, isError } = useApplication(appId);
 
@@ -96,7 +100,13 @@ export function ApplicationDetailPage() {
     if (!newStatus) return;
     changeStatus(
       { id: appId, body: { newStatus, note: statusNote.trim() || undefined } },
-      { onSuccess: () => { setNewStatus(''); setStatusNote(''); } },
+      {
+        onSuccess: () => {
+          setNewStatus('');
+          setStatusNote('');
+          toast.success('Đã đổi trạng thái đơn');
+        },
+      },
     );
   }
 
@@ -113,19 +123,39 @@ export function ApplicationDetailPage() {
           description: evtDesc.trim() || undefined,
         },
       },
-      { onSuccess: () => { setEvtDate(''); setEvtTitle(''); setEvtDesc(''); } },
+      {
+        onSuccess: () => {
+          setEvtDate('');
+          setEvtTitle('');
+          setEvtDesc('');
+          toast.success('Đã thêm sự kiện');
+        },
+        onError: () => toast.error('Không thêm được sự kiện — thử lại'),
+      },
     );
   }
 
-  function handleDelete() {
-    if (!window.confirm('Xóa đơn ứng tuyển này?')) return;
-    deleteApplication(appId, { onSuccess: () => navigate('/applications') });
+  async function handleDelete() {
+    if (!(await confirmDialog('Xóa đơn ứng tuyển này?'))) return;
+    deleteApplication(appId, {
+      onSuccess: () => {
+        toast.success('Đã xóa đơn ứng tuyển');
+        navigate('/applications');
+      },
+      onError: () => toast.error('Không xóa được đơn — thử lại'),
+    });
   }
 
   function handleCvChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const val = e.target.value;// trả về id cv nhưng là kiểu string nên cần ép number
     if (!val) return; // chọn "chưa gắn" không gỡ được CV (PATCH null = giữ nguyên) — defer unlink
-    updateApplication({ id: appId, body: { cvVersionId: Number(val) } });
+    updateApplication(
+      { id: appId, body: { cvVersionId: Number(val) } },
+      {
+        onSuccess: () => toast.success('Đã gắn CV vào đơn'),
+        onError: () => toast.error('Không gắn được CV — thử lại'),
+      },
+    );
   }
 
   const salary =
@@ -258,7 +288,8 @@ export function ApplicationDetailPage() {
               </Button>
             </form>
 
-            <div className="mt-3 space-y-2">
+            {/* Danh sách sự kiện — quá dài thì cuộn trong khung */}
+            <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
               {app.timelineEvents.length === 0 && (
                 <p className="text-sm text-gray-500">Chưa có sự kiện nào.</p>
               )}
@@ -276,9 +307,15 @@ export function ApplicationDetailPage() {
             </div>
           </SectionCard>
 
-          {/* Lịch sử trạng thái */}
+          {/* Lịch sử trạng thái — quá dài thì cuộn trong khung */}
+          {/*
+          làm croll bằng :
+          .max-h-72       //giới hạn chiều cao scroll
+          .overflow-y-auto  //  nếu nội dung bị tràn ra ngoài kích thước thì biến phần thừa thành croll nội bộ
+
+           */}
           <SectionCard title="Lịch sử trạng thái">
-            <div className="space-y-2">
+            <div className="max-h-60 space-y-2 overflow-y-auto pr-1">
               {app.statusHistory.map((h) => (
                 <div key={h.id} className="flex items-center justify-between gap-2 text-sm">
                   <span className="text-gray-700">

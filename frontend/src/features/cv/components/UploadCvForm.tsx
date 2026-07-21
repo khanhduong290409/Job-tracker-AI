@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/toast';
 import { useUploadCv } from '../api/queries';
 
 export function UploadCvForm() {
@@ -10,6 +11,7 @@ export function UploadCvForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { mutate: uploadCv, isPending } = useUploadCv();
+  const toast = useToast();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,7 +24,9 @@ export function UploadCvForm() {
           setLabel('');
           setFile(null);
           if (fileInputRef.current) fileInputRef.current.value = '';
+          toast.success('Đã tải CV lên — AI đang phân tích');
         },
+        onError: () => toast.error('Không tải được CV — thử lại'),
       },
     );
   }

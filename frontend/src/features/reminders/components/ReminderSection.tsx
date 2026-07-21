@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm-dialog';
+import { useToast } from '@/components/ui/toast';
 import {
   useCreateReminder,
   useDeleteReminder,
@@ -24,6 +26,8 @@ interface ReminderSectionProps {
 }
 
 export function ReminderSection({ applicationId }: ReminderSectionProps) {
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const { data: reminders, isLoading } = useReminders({ applicationId });
   const { mutate: createReminder, isPending: isCreating, error: createError } = useCreateReminder();
   const { mutate: dismissReminder } = useDismissReminder();
@@ -53,9 +57,19 @@ export function ReminderSection({ applicationId }: ReminderSectionProps) {
     );
   }
 
-  function handleDelete(id: number) {
-    if (!window.confirm('Xóa nhắc nhở này?')) return;
-    deleteReminder(id);
+  function handleDismiss(id: number) {
+    dismissReminder(id, {
+      onSuccess: () => toast.success('Đã tắt nhắc nhở'),
+      onError: () => toast.error('Không tắt được nhắc nhở — thử lại'),
+    });
+  }
+
+  async function handleDelete(id: number) {
+    if (!(await confirmDialog('Xóa nhắc nhở này?'))) return;
+    deleteReminder(id, {
+      onSuccess: () => toast.success('Đã xóa nhắc nhở'),
+      onError: () => toast.error('Không xóa được nhắc nhở — thử lại'),
+    });
   }
 
   const items = reminders ?? [];
@@ -96,8 +110,8 @@ export function ReminderSection({ applicationId }: ReminderSectionProps) {
         )}
       </form>
 
-      {/* Danh sách reminder */}
-      <div className="mt-3 space-y-2">
+      {/* Danh sách reminder — quá cao thì cuộn trong khung, không kéo dài trang */}
+      <div className="mt-3 max-h-72 space-y-2 overflow-y-auto pr-1">
         {isLoading && <p className="text-sm text-gray-500">Đang tải...</p>}
         {!isLoading && items.length === 0 && (
           <p className="text-sm text-gray-500">Chưa có nhắc nhở nào.</p>
@@ -124,7 +138,7 @@ export function ReminderSection({ applicationId }: ReminderSectionProps) {
                 {!r.dismissed && (
                   <button
                     type="button"
-                    onClick={() => dismissReminder(r.id)}
+                    onClick={() => handleDismiss(r.id)}
                     className="text-xs text-gray-500 hover:underline"
                   >
                     Tắt

@@ -15,6 +15,7 @@ import {
   type EmploymentType,
   type WorkType,
 } from '@/types/common';
+import { useToast } from '@/components/ui/toast';
 import { useExtractJd } from '@/features/ai/api/queries';
 import { useCvList } from '@/features/cv/api/queries';
 import { useCreateApplication } from '../api/queries';
@@ -89,6 +90,7 @@ function getErrorMessage(err: unknown): string {
 
 export function CreateApplicationPage() {
   const navigate = useNavigate();
+  const toast = useToast();
   const { mutate: createApplication, isPending, error } = useCreateApplication();
   const { mutate: extractJd, isPending: isExtracting, error: extractError } = useExtractJd();
 
@@ -99,6 +101,7 @@ export function CreateApplicationPage() {
   register,        // Đăng ký input vào form (bên dưới có giải thích)
   handleSubmit,    // Xử lý submit form
   setValue,        // Gán giá trị field bằng code (dùng cho auto-fill từ AI)
+  reset,           // Đưa form về defaultValues (dọn form sau khi tạo xong)
   getValues,       // Đọc giá trị field hiện tại (lấy jdContent gửi cho AI)
   watch,           // Theo dõi field để re-render (bật/tắt nút theo độ dài JD)
   formState: { errors },  // Lấy ra object errors từ formState -> hiển thị lỗi cho user
@@ -192,7 +195,12 @@ export function CreateApplicationPage() {
     };
 
     createApplication(body, {
-      onSuccess: (created) => navigate(`/applications/${created.id}`),
+      onSuccess: () => {
+        toast.success('Đã tạo đơn ứng tuyển');
+        // Ở lại trang (không navigate) → phải dọn form, không thì bấm Tạo
+        // lần nữa với data cũ còn nguyên là ra đơn trùng.
+        reset();
+      },
     });
   }
 

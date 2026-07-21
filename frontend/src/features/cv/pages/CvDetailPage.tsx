@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LoadingState } from '@/components/ui/query-states';
+import { useToast } from '@/components/ui/toast';
 import { useCv, useReparseCv, useUpdateParsedData } from '../api/queries';
 import { CvParseStatusBadge } from '../components/CvParseStatusBadge';
 import { CvParsedDataEditor } from '../components/CvParsedDataEditor';
@@ -9,6 +10,7 @@ import { CvParsedDataEditor } from '../components/CvParsedDataEditor';
 export function CvDetailPage() {
   const { id } = useParams<{ id: string }>();
   const cvId = Number(id);
+  const toast = useToast();
 
   const { data: cv, isLoading, isError } = useCv(cvId);
   const { mutate: updateParsedData, isPending: isSaving, error: saveError } = useUpdateParsedData(cvId);
@@ -72,7 +74,18 @@ export function CvDetailPage() {
             <>
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-gray-900">Dữ liệu CV</h2>
-                <Button type="button" variant="outline" size="sm" onClick={() => reparse()} disabled={isReparsing}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isReparsing}
+                  onClick={() =>
+                    reparse(undefined, {
+                      onSuccess: () => toast.success('Đã gửi yêu cầu phân tích lại — AI đang xử lý'),
+                      onError: () => toast.error('Không gửi được yêu cầu phân tích — thử lại'),
+                    })
+                  }
+                >
                   {isReparsing ? 'Đang gửi...' : 'Phân tích lại bằng AI'}
                 </Button>
               </div>
@@ -88,7 +101,11 @@ export function CvDetailPage() {
               <CvParsedDataEditor
                 key={cv.updatedAt}
                 parsedData={cv.parsedData}
-                onSave={(data) => updateParsedData(data)}
+                onSave={(data) =>
+                  updateParsedData(data, {
+                    onSuccess: () => toast.success('Đã lưu dữ liệu CV'),
+                  })
+                }
                 isSaving={isSaving}
                 saveError={saveError}
               />
