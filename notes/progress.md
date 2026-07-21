@@ -6,6 +6,29 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-07-22 — Toast 3 hệ (nhắc nhở + hành động) + confirm modal + scroll list — ĐÃ COMMIT + PUSH
+
+**Commit `92e13a7` (toaster nhắc nhở, 6 file) + `046bd8f` (toast hành động + confirm + scroll, 8 file). Verify: tsc PASS · eslint 0 lỗi mới · npm run build PASS. Session này user hỏi-đáp rất sâu để hiểu từng mảnh — các giải thích quan trọng ghi lại dưới.**
+
+**1. NotificationToaster (toast thông báo nhắc nhở, góc phải TRÊN, navy đặc):**
+- Poll `useUnreadNotifications` 30s (dùng chung key với `useNotifications`, size 5). Mốc `seenMaxId` (useRef): poll đầu chỉ ghi nhớ (tồn đọng không toast — quy tắc "Messenger": banner chỉ cho tin đến khi đang online, tồn đọng là việc của badge chuông); list rỗng lần đầu → mốc = 0 (fix bug nuốt thông báo đầu tiên). Mỗi nhịp `filter(id > mốc)` → bắt ĐỦ mọi cái mới trong 1 nhịp (bug ban đầu: chỉ nhìn `items[0]`, 3 cái mới chỉ hiện 1).
+- **Stagger**: `[...fresh].reverse()` (cũ nhất trước) + `setTimeout(i*400ms)` từng cái vào state → trượt vào lần lượt, đóng cũng lệch nhịp theo. CỐ Ý không cleanup timer (cleanup khi data đổi = hủy oan toast đang xếp hàng).
+- Mỗi `ToastItem` tự quản vòng đời (hiện 6s → slide-out 0.3s → onDone gỡ khỏi mảng). Bấm = markRead + navigate linkUrl. `removeToast` bọc useCallback (không reset timer con).
+- Có noti mới → `invalidateQueries(REMINDER_KEYS.all)` — **fix bug**: thẻ nhắc nhở không đổi "đã gửi" cho tới F5 (dispatcher đổi sentAt âm thầm server-side, FE không có móc; tín hiệu gián tiếp = noti mới sinh).
+- **3 ca toast sót (chấp nhận, chuông đỡ hết)**: tồn đọng lúc mở app · >5 cái sinh giữa 2 nhịp poll (rớt cửa sổ fetch) · F5 mất mốc. ĐÃ BÁC cột DB `displayed` (5 việc thay 1, vẫn cần logic first-load, sai ngữ nghĩa per-device).
+
+**2. ToastProvider/useToast (`components/ui/toast.tsx`) — toast HÀNH ĐỘNG, góc phải DƯỚI:** context + provider bọc App.tsx (ngoài BrowserRouter → sống xuyên navigate); api `{success, error}` memo-hóa; success emerald 4s / error đỏ 6s, nền đặc chữ trắng (3 màu phân vai với navy nhắc nhở). Đã gắn: detail đơn (đổi trạng thái · thêm sự kiện · xóa đơn · gắn CV) · reminder (tắt/xóa) · CvDetail (lưu parsed data / reparse) · tạo đơn · upload CV. **Quy tắc chốt:** có lỗi inline sẵn → không toast error (tránh 1 lỗi 2 nơi); mutation nền 202 (upload/reparse) → toast "đã gửi/AI đang phân tích" KHÔNG nói "xong" (kết quả về sau qua polling). Settings CHƯA gắn.
+
+**3. ConfirmProvider/useConfirm (`components/ui/confirm-dialog.tsx`):** thay `window.confirm` (2 chỗ: xóa đơn, xóa nhắc nhở) bằng modal + **deferred promise** (cất `resolve` vào ref, nút bấm resolve sau) → call site 1 dòng `if (!(await confirmDialog('...'))) return;`. Esc + click nền = Hủy; gọi mới khi cũ còn treo → resolve(false) cái cũ. Bẫy đáng nhớ: quên `await` → Promise truthy → xóa không hỏi. ĐÃ CÂN NHẮC phương án inline modal trong từng file (user đề xuất "đơn giản hơn") → giữ context: inline = +state +handler +15 dòng JSX mỗi file, bẻ đôi luồng handler.
+
+**4. UI khác:** 3 list trang chi tiết đơn (sự kiện `max-h-72` · lịch sử `max-h-60` · nhắc nhở `max-h-72`) thêm `overflow-y-auto pr-1` — trang không dài vô hạn. **Tạo đơn: ở lại trang + `reset()`** (user bỏ navigate; reset chống bấm Tạo lần 2 ra đơn trùng — RHF reset về defaultValues).
+
+**5. Vận hành:** `ReminderJobs` user đổi fixedDelay 3' để test toast → **trả về 15'** trước commit (3' query Neon liên tục → không scale-to-zero, đốt compute free — cùng bài học UptimeRobot). `SHOW_MS` toaster 8s→6s (user chỉnh).
+
+**CÒN TREO (không đổi):** 7B-3 README + screenshots (việc cuối) · ảnh nền login 2MB · Swagger prod `/v3/api-docs` 500 · path sai trả 500 thay 404 · cân nhắc toast error cho Settings.
+
+---
+
 ## 2026-07-21 (2) — PHASE 7C DEPLOY: XONG. App đã LIVE + test end-to-end PASS
 
 **User tự thao tác dashboard theo `docs/deployment.md`, mình hướng dẫn từng bước + verify bằng curl. Toàn bộ smoke test PASS (đăng nhập Google → tạo đơn → analytics → upload CV).**
