@@ -3,7 +3,8 @@ import { reminderApi } from './reminder-api';
 import type { CreateReminderRequest, ReminderListParams } from '../types';
 
 // REMINDER_KEYS.all = ['reminders'] → invalidate prefix-match mọi list (toàn bộ + theo app).
-const REMINDER_KEYS = {
+// Export vì NotificationToaster cũng cần làm mới danh sách khi dispatcher vừa gửi nhắc nhở.
+export const REMINDER_KEYS = {
   all: ['reminders'] as const,
   list: (params: ReminderListParams) => ['reminders', 'list', params] as const,
 };

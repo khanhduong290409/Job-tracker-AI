@@ -18,7 +18,7 @@ export interface Notification {
 
 // Query param cho GET /notifications (đều optional, backend có default).
 export interface NotificationListParams {
-  unreadOnly?: boolean;
+  unreadOnly?: boolean;//undeadonly:true -> backend chỉ trả về các thông báo chưa đọc(read = false)
   page?: number;
   size?: number;
 }

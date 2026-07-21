@@ -28,3 +28,35 @@
     color: hsl(var(--foreground));
   }
 }
+
+/* Animation cho toast thông báo (NotificationToaster).
+   Viết CSS thuần thay vì khai vào tailwind.config.js: translateX(100%) là "trượt
+   đúng bằng chiều rộng chính nó" — Tailwind config không diễn đạt được ý đó gọn hơn. */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  will-change: transform;
+  animation: slide-in-right 0.25s cubic-bezier(0.4, 0.2, 0.2, 1) both;
+}
+
+@keyframes slide-out-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(110%);
+    opacity: 0;
+  }
+}
+
+.animate-slide-out-right {
+  animation: slide-out-right 0.3s cubic-bezier(0.4, 0.2, 0.2, 1) both;
+}

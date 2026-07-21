@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import logoMark from '@/assets/logo-mark.png';
 import { useAuthStore } from '../../features/auth/store/auth-store';
 import { useLogout } from '../../features/auth/hooks/useAuth';
+import { NotificationToaster } from '../../features/notifications/components/NotificationToaster';
 import { SidebarSlotContext } from './sidebar-slot';
 
 const NAV_ITEMS = [
@@ -111,6 +112,10 @@ export function ProtectedLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Lớp phủ toàn app — mount 1 lần ở đây để mọi trang đều nhận được toast.
+          position:fixed nên đặt ngoài khung flex, không ảnh hưởng bố cục. */}
+      <NotificationToaster />
     </SidebarSlotContext.Provider>
   );
 }
