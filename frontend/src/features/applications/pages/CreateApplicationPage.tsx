@@ -197,6 +197,7 @@ export function CreateApplicationPage() {
     createApplication(body, {
       onSuccess: () => {
         toast.success('Đã tạo đơn ứng tuyển');
+        navigate("/applications");
         // Ở lại trang (không navigate) → phải dọn form, không thì bấm Tạo
         // lần nữa với data cũ còn nguyên là ra đơn trùng.
         reset();
