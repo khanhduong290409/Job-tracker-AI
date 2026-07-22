@@ -49,6 +49,20 @@ export function JdInsightSection({ applicationId }: Props) {
   );
 }
 
+// Ghép min/max/currency thành chuỗi hiển thị: "15.000.000 – 20.000.000 VND".
+// Chỉ có 1 đầu → "Từ..." / "Đến...". Không có gì → null (row bị filter ẩn).
+function formatSalary(insight: JdInsight): string | null {
+  const { salaryMin: min, salaryMax: max, salaryCurrency } = insight;
+  if (min == null && max == null) return null;
+
+  const fmt = (n: number) => n.toLocaleString('vi-VN');
+  const currency = salaryCurrency ?? '';
+  if (min != null && max != null) {
+    return min === max ? `${fmt(min)} ${currency}` : `${fmt(min)} – ${fmt(max)} ${currency}`;
+  }
+  return min != null ? `Từ ${fmt(min)} ${currency}` : `Đến ${fmt(max!)} ${currency}`;
+}
+
 // ── Render kết quả ─────────────────────────────────────────────────────────────
 
 function JdInsightView({ insight }: { insight: JdInsight }) {
@@ -58,7 +72,7 @@ function JdInsightView({ insight }: { insight: JdInsight }) {
     { label: 'Địa điểm', value: insight.location },
     { label: 'Hình thức', value: insight.workType },
     { label: 'Loại hình', value: insight.employmentType },
-    { label: 'Mức lương', value: insight.salaryRange },
+    { label: 'Mức lương', value: formatSalary(insight) },
     { label: 'Cấp độ', value: insight.experienceLevel },
     { label: 'Kinh nghiệm', value: insight.yearsOfExperience },
     { label: 'Học vấn', value: insight.education },

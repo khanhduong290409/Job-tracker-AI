@@ -14,11 +14,15 @@ import java.util.List;
 //báo jackson bỏ qua các field thiếu value
 public record JdInsightResponse(
         String companyName,
+        String companyDomain,     // domain website công ty (nếu JD có), không phải domain job board
         String position,
         String location,
         String workType,          // ONSITE | HYBRID | REMOTE | null
         String employmentType,    // INTERN | FULLTIME | PARTTIME | CONTRACT | null
-        String salaryRange,
+        Integer salaryMin,        // đơn vị gốc của currency (VND: 15000000, không phải "15 triệu")
+        Integer salaryMax,
+        String salaryCurrency,    // "VND" | "USD" | ... | null
+        String sourceDetail,      // nền tảng đăng tin nếu lộ ra trong JD (vd "TopCV"), null nếu không rõ
         String experienceLevel,   // INTERN | JUNIOR | MID | SENIOR | LEAD | null
         String yearsOfExperience,
         String education,

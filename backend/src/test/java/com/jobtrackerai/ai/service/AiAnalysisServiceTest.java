@@ -217,8 +217,8 @@ class AiAnalysisServiceTest {
     }
 
     private JdInsightResponse jdInsight(String position) {
-        return new JdInsightResponse(null, position, null, null, null, null, null, null, null,
-                null, null, null, null, null, null);
+        return new JdInsightResponse(null, null, position, null, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, null, null);
     }
 
     private CvJdMatchResponse cvMatch(Integer score) {

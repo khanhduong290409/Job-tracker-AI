@@ -176,11 +176,15 @@ public class AiAnalysisService {
                 Extract:
                 {
                   "companyName": "string|null",
+                  "companyDomain": "string|null",
                   "position": "string",
                   "location": "string|null",
                   "workType": "ONSITE|HYBRID|REMOTE|null",
                   "employmentType": "INTERN|FULLTIME|PARTTIME|CONTRACT|null",
-                  "salaryRange": "string|null",
+                  "salaryMin": "integer|null",
+                  "salaryMax": "integer|null",
+                  "salaryCurrency": "string|null",
+                  "sourceDetail": "string|null",
                   "experienceLevel": "INTERN|JUNIOR|MID|SENIOR|LEAD|null",
                   "yearsOfExperience": "string|null",
                   "education": "string|null",
@@ -190,7 +194,13 @@ public class AiAnalysisService {
                   "benefits": ["string"],
                   "techStack": {"languages": ["string"], "frameworks": ["string"], "databases": ["string"], "tools": ["string"], "platforms": ["string"]},
                   "softSkills": ["string"]
-                }""".formatted(jdContent);
+                }
+
+                Rules:
+                - salaryMin/salaryMax: absolute amounts in the currency's base unit. "15-20 triệu VND" -> min 15000000, max 20000000. "up to $1500" -> min null, max 1500. Negotiable/unstated -> both null. Single amount -> fill both with it.
+                - salaryCurrency: ISO-like code ("VND", "USD"). Infer from symbol/context ($ -> USD, "triệu" -> VND). No salary info -> null.
+                - companyDomain: bare domain of the company's own website if it appears in the JD ("https://www.shoplink.vn/careers" -> "shoplink.vn"). Do NOT use job-board domains (topcv, itviec, linkedin...) and do NOT guess from the company name.
+                - sourceDetail: the job board / platform / channel this posting appears on, ONLY if the text itself shows it (e.g. "Ung tuyen ngay tren TopCV" -> "TopCV"). Otherwise null — never guess.""".formatted(jdContent);
             // dấu """ là để dùng cho 1 đoạn string dài, nếu như không dùng thì lúc xuống dòng thì ta cần dùng \n còn nếu như 
             // dùng """ thì xuống dòng 1 cách tự do mà không cần \n
         return AiPrompt.of(system, user, 0.2, 1500);

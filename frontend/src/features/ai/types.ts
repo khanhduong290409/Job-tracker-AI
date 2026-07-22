@@ -36,11 +36,15 @@ export interface TechStack {
 
 export interface JdInsight {
   companyName: string | null;
+  companyDomain: string | null; // domain website công ty (không phải job board)
   position: string | null;
   location: string | null;
   workType: string | null; // ONSITE | HYBRID | REMOTE | null
   employmentType: string | null; // INTERN | FULLTIME | PARTTIME | CONTRACT | null
-  salaryRange: string | null;
+  salaryMin: number | null; // đơn vị gốc của currency (VND: 15000000)
+  salaryMax: number | null;
+  salaryCurrency: string | null; // "VND" | "USD" | ...
+  sourceDetail: string | null; // nền tảng đăng tin nếu JD lộ ra (vd "TopCV")
   experienceLevel: string | null; // INTERN | JUNIOR | MID | SENIOR | LEAD | null
   yearsOfExperience: string | null;
   education: string | null;

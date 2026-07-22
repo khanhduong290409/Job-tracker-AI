@@ -155,8 +155,14 @@ export function CreateApplicationPage() {
       {
         onSuccess: (insight) => {
           setIf('companyName', insight.companyName);
+          setIf('companyDomain', insight.companyDomain);
           setIf('position', insight.position);
           setIf('location', insight.location);
+          // Field số của form giữ dạng string (input type="number") → convert trước khi set.
+          setIf('salaryMin', insight.salaryMin != null ? String(insight.salaryMin) : null);
+          setIf('salaryMax', insight.salaryMax != null ? String(insight.salaryMax) : null);
+          setIf('salaryCurrency', insight.salaryCurrency);
+          setIf('sourceDetail', insight.sourceDetail);
           // Field enum: chỉ điền nếu AI trả đúng giá trị hợp lệ (option select), tránh chọn rác.
           // bên dưới có giải thích readonly
           if (insight.workType && (WORK_TYPES as readonly string[]).includes(insight.workType)) {
