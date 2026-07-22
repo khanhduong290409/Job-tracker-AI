@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 
@@ -145,6 +146,11 @@ public class ApplicationService {
         stateMachine.validateTransition(from, to);
 
         app.setStatus(to);
+        // Chuyển sang APPLIED = hành động nộp đơn → tự ghi ngày nộp nếu chưa có.
+        // Giữ nguyên nếu user đã nhập sẵn (backfill đơn cũ với ngày nộp trong quá khứ).
+        if (to == ApplicationStatus.APPLIED && app.getAppliedDate() == null) {
+            app.setAppliedDate(LocalDate.now());
+        }
         applicationRepository.save(app);
         recordStatusHistory(id, from, to, req.note());
 
