@@ -6,6 +6,19 @@ Format: ngày, phase đang làm, what's done, what's next, notes ngắn.
 
 ---
 
+## 2026-07-23 — 7B-3 README + screenshots + video demo → 🎉 PROJECT HOÀN THÀNH — ĐÃ COMMIT + PUSH
+
+**Commit `25114f6` "README hoan chinh + screenshots + link video demo (7B-3)" (13 file). Việc cuối cùng của Phase 7 → cả 7 phases ĐÓNG.**
+
+- **README.md viết lại hoàn toàn** theo template README portfolio project cũ của user (PawCare, tiếng Anh): live demo `applyist.vercel.app` + **video demo `https://youtu.be/SKMgRnkJIY0`** + note cold start ~60s ngay dưới link (người xem khỏi tưởng app hỏng) + 12 screenshots + features theo module + tech stack 2 bảng BE/FE + ASCII architecture (Vercel→Render→Neon/Gemini/Cloudinary/SMTP) + getting started (env vars khớp đúng `.env.example`, ghi chú bật Cloudinary "Allow delivery of PDF") + project structure + bảng Deployment link `docs/deployment.md` + **Known Issues** (SMTP prod bị Render free chặn — email không gửi được ở prod · Swagger `/v3/api-docs` 500 prod · path sai trả 500 thay 404 · Gemini free 5 RPM). Bản README cũ (nội bộ dev/AI-agent workflow) thay hẳn — nội dung đó vẫn nằm trong `.kilocode/rules/` + CLAUDE.md.
+- **12 screenshots** user chụp, bỏ `docs/screenshots/` đúng tên README trỏ: login · applications · application-detail · create-application · jd-insight · cv-match · email-draft · cv-list · cv-detail · analytics · notifications · settings.
+- **Bẫy link video (đáng nhớ):** link user gửi lần đầu (`Yk7Nlw0r9Po`) hóa ra đã 404 (user re-upload video); user tự sửa text hiển thị trong README nhưng href markdown vẫn trỏ video cũ → hai video lệch nhau. Verify cả 2 ID qua **YouTube oEmbed** (`youtube.com/oembed?url=...` — 200 vs 404, không cần API key) → chốt `SKMgRnkJIY0` cho cả text lẫn href TRƯỚC khi commit.
+- **Ghi nhận 5 commit từ session khác (07-22/23) chưa có trong notes:** `7aec100` tối ưu UX sau tạo đơn · `1fa8a60` fix không update `appliedDate` khi đổi status sang APPLIED · `d4fb60e` mở rộng AI extract JD tự điền nhiều field hơn · `c3c2d56` tắt mail health indicator prod (Render free chặn outbound SMTP làm deploy timeout) · `8cce5d9` đổi `gemini-3.6-flash` + `thinkingLevel: minimal` (2.5-flash 404 với project mới), runbook thêm TZ.
+
+**Trạng thái cuối:** app live + README/video/screenshots đầy đủ trên GitHub. **CÒN TREO (không chặn, làm tùy hứng):** ảnh nền login 2MB (nên xuất .webp) · Swagger prod 500 · path sai trả 500 thay 404 · cân nhắc toast error Settings.
+
+---
+
 ## 2026-07-22 — Toast 3 hệ (nhắc nhở + hành động) + confirm modal + scroll list — ĐÃ COMMIT + PUSH
 
 **Commit `92e13a7` (toaster nhắc nhở, 6 file) + `046bd8f` (toast hành động + confirm + scroll, 8 file). Verify: tsc PASS · eslint 0 lỗi mới · npm run build PASS. Session này user hỏi-đáp rất sâu để hiểu từng mảnh — các giải thích quan trọng ghi lại dưới.**
