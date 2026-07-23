@@ -163,6 +163,10 @@ management:
     redis:
       # Prod không chạy Redis (cache chưa dùng @Cacheable) → tắt indicator để /actuator/health không DOWN.
       enabled: false
+    mail:
+      # Render free chặn outbound SMTP port 25/465/587 → indicator thử nối SMTP sẽ treo
+      # → /actuator/health timeout → Render đánh fail deploy. Gửi mail thật vẫn fail-soft trong MailService.
+      enabled: false
 
 logging:
   level:
