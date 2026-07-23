@@ -49,11 +49,12 @@ Redis KHÔNG deploy (app chưa dùng `@Cacheable`; prod đã tắt Redis health 
 | `GOOGLE_CLIENT_SECRET` | (Google Console) | |
 | `GOOGLE_REDIRECT_URI` | `https://<app>.vercel.app/auth/callback` | điền sau khi có URL Vercel (bước 3) |
 | `GEMINI_API_KEY` | (Google AI Studio) | |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | **KHÔNG để mặc định** `gemini-2.0-flash` (free tier limit:0) |
+| `GEMINI_MODEL` | `gemini-3.6-flash` | Đổi 2026-07-23: `gemini-2.5-flash` bị 404 với project Google Cloud tạo mới ("no longer available to new users") và code đã chuyển sang `thinkingLevel` (Gemini 3.x). Key phải thuộc project thấy model này (check bằng ListModels) |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | (Cloudinary) | cho upload CV |
 | `APP_CORS_ALLOWED_ORIGINS` | `https://<app>.vercel.app` | điền sau khi có URL Vercel (bước 3) |
 | `MAIL_HOST` / `MAIL_PORT` / `MAIL_USERNAME` / `MAIL_PASSWORD` | (Mailtrap hoặc SMTP thật) | tùy chọn — chỉ cần nếu muốn email nhắc nhở |
 | `MAIL_FROM` | `Job Tracker AI <no-reply@...>` | tùy chọn |
+| `TZ` | `Asia/Ho_Chi_Minh` | timezone JVM. Thiếu → container chạy UTC, mọi `LocalDate.now()` (appliedDate, analytics, reminder) lệch ngày trong khung 00:00–07:00 giờ VN |
 
 > KHÔNG set `PORT` (Render tự inject; app đã đọc `server.port=${PORT:8080}`).
 > KHÔNG cần `REDIS_HOST`/`REDIS_PORT`.

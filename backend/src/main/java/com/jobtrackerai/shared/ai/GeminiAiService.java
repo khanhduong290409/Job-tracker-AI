@@ -96,10 +96,11 @@ public class GeminiAiService implements AiService {
                 : null;
 
         String mimeType = prompt.jsonMode() ? "application/json" : "text/plain";
-        // thinkingBudget=0: TẮT chế độ "thinking" của Gemini 2.5. Các tác vụ của app đều là xuất JSON
-        // có cấu trúc ở temp thấp — thinking tiêu tốn output tokens cho suy luận nội bộ, đẩy JSON vượt
-        // maxOutputTokens → response bị cắt cụt → parse fail. Tắt đi cho output ngắn gọn, nhanh, ổn định.
-        GenerationConfig config = new GenerationConfig(prompt.temperature(), prompt.maxTokens(), mimeType, new ThinkingConfig(0));
+        // thinkingLevel=minimal: hạn chế tối đa chế độ "thinking" (Gemini 3.x). Các tác vụ của app đều là
+        // xuất JSON có cấu trúc ở temp thấp — thinking tiêu tốn output tokens cho suy luận nội bộ, đẩy JSON
+        // vượt maxOutputTokens → response bị cắt cụt → parse fail (đã dính thật với default thinking).
+        // Lưu ý: Gemini 3.x KHÔNG nhận thinkingBudget (400 INVALID_ARGUMENT) — param đó chỉ dành cho dòng 2.5.
+        GenerationConfig config = new GenerationConfig(prompt.temperature(), prompt.maxTokens(), mimeType, new ThinkingConfig("minimal"));
 
         return new GeminiRequest(List.of(userContent), systemInstruction, config);
     }
@@ -147,8 +148,8 @@ public class GeminiAiService implements AiService {
             ThinkingConfig thinkingConfig
     ) {}
 
-    // thinkingBudget=0 tắt hẳn thinking; >0 giới hạn số token cho thinking (Gemini 2.5).
-    private record ThinkingConfig(int thinkingBudget) {}
+    // Gemini 3.x: điều khiển thinking bằng mức ("minimal"/"low"/"high"), không còn thinkingBudget theo token.
+    private record ThinkingConfig(String thinkingLevel) {}
 
     // ── Response records (JSON → Java, deserialization only) ─────────────────
 
