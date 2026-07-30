@@ -150,6 +150,13 @@ spring:
   config:
     activate:
       on-profile: prod
+  datasource:
+    hikari:
+      # Free tier 0.1 CPU: mỗi connection tới Neon là một lần bắt tay SSL qua internet.
+      # minimum-idle 5 → 5 lần bắt tay ngay lúc khởi động, làm chậm thời điểm bind port.
+      # App cá nhân không cần 20 connection; Neon free cũng giới hạn số connection.
+      maximum-pool-size: 5
+      minimum-idle: 1
   jpa:
     show-sql: false
 

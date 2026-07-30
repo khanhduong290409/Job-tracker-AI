@@ -24,5 +24,21 @@ COPY --from=builder /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
 # Tài liệu hóa cổng mặc định; cloud sẽ override qua biến PORT (app đọc server.port=${PORT:8080}).
 EXPOSE 8080
 
-# MaxRAMPercentage: JVM 17 tự nhận giới hạn RAM của container (free tier ~512MB) → cấp heap theo %.
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "app.jar"]
+# Tuning cho Render free tier: ~512MB RAM và ~0.1 CPU. Startup từng vượt port-scan
+# timeout của Render → container bị SIGKILL (exit 137) trước khi Tomcat kịp bind port.
+#
+#   MaxRAMPercentage=60   heap tối đa ~307MB, chừa chỗ cho metaspace/code cache/thread stack.
+#                         (75% → heap 384MB + non-heap ~150MB > 512MB → sát trần, GC quần liên tục)
+#   MaxMetaspaceSize      chặn metaspace phình không kiểm soát khi Spring nạp hàng nghìn class.
+#   UseSerialGC           G1 mặc định spawn nhiều GC thread tranh nhau 0.1 CPU. Heap nhỏ +
+#                         CPU ít thì SerialGC nhanh hơn và tốn ít bộ nhớ quản lý hơn.
+#   TieredStopAtLevel=1   chỉ JIT tầng C1, bỏ C2. Cắt phần lớn công biên dịch lúc khởi động —
+#                         đây là khoản tiết kiệm lớn nhất khi CPU bị bóp.
+#   Xss512k               mỗi thread 512KB thay vì 1MB mặc định.
+ENTRYPOINT ["java", \
+  "-XX:MaxRAMPercentage=60.0", \
+  "-XX:MaxMetaspaceSize=128m", \
+  "-XX:+UseSerialGC", \
+  "-XX:TieredStopAtLevel=1", \
+  "-Xss512k", \
+  "-jar", "app.jar"]
