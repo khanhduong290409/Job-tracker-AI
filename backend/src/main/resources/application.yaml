@@ -171,5 +171,10 @@ management:
 logging:
   level:
     com.jobtrackerai: INFO
-    org.springframework: WARN
-    root: WARN
+    # TẠM để INFO (không phải WARN) để thấy tiến trình khởi động trên Render:
+    # "Bootstrapping JPA repositories", "HikariPool-1 - Starting", "Flyway migrating",
+    # "Tomcat started on port", "Started BackendApplication in X seconds".
+    # Với WARN thì log im lặng hoàn toàn → không biết startup kẹt ở đâu khi Render
+    # kill vì port scan timeout. Hạ lại WARN sau khi deploy ổn định.
+    org.springframework: INFO
+    root: INFO
