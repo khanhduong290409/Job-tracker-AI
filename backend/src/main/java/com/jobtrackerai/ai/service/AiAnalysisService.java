@@ -203,7 +203,9 @@ public class AiAnalysisService {
                 - sourceDetail: the job board / platform / channel this posting appears on, ONLY if the text itself shows it (e.g. "Ung tuyen ngay tren TopCV" -> "TopCV"). Otherwise null — never guess.""".formatted(jdContent);
             // dấu """ là để dùng cho 1 đoạn string dài, nếu như không dùng thì lúc xuống dòng thì ta cần dùng \n còn nếu như 
             // dùng """ thì xuống dòng 1 cách tự do mà không cần \n
-        return AiPrompt.of(system, user, 0.2, 1500);
+        // 4000 output tokens: JD dài (nhiều skill/benefit, mô tả tiếng Việt — tốn ~2x token so với
+        // tiếng Anh) từng sinh JSON vượt mức 1500 cũ → Gemini cắt giữa chừng → parse fail.
+        return AiPrompt.of(system, user, 0.2, 4000);
     }
 
     private AiPrompt buildCvJdMatchPrompt(String jdContent, String parsedCvJson) {
@@ -240,6 +242,7 @@ public class AiAnalysisService {
                 - suggestions: actionable, e.g. "highlight X experience" or "add Y project", not "learn X"
                 - matchedKeywords/missingKeywords: technical keywords only (tech stack, tools)""".formatted(parsedCvJson, jdContent);
 
-        return AiPrompt.of(system, user, 0.3, 2000);
+        // 4000: cùng lý do với JD insight — output có 5 mảng mô tả dài (strengths/gaps/suggestions/keywords)
+        return AiPrompt.of(system, user, 0.3, 4000);
     }
 }

@@ -48,7 +48,25 @@ public class GeminiAiService implements AiService {
                         .retrieve()// gửi HTTP request, nhận response về
                         .body(GeminiApiResponse.class);// đọc thành object chỉ định
 
-                String rawText = response.candidates().get(0).content().parts().get(0).text();
+                if (response == null || response.candidates() == null || response.candidates().isEmpty()) {
+                    throw new AiException("Gemini trả về response không có candidate nào");
+                }
+                Candidate candidate = response.candidates().get(0);
+
+                // finishReason != STOP nghĩa là Gemini dừng bất thường. Hay gặp nhất là MAX_TOKENS:
+                // JSON bị cắt giữa chừng, để lọt xuống parser sẽ chỉ báo "parse fail" rất khó đoán bệnh.
+                // Chặn ngay tại đây và KHÔNG retry — gửi lại y hệt request thì vẫn cắt đúng chỗ đó.
+                if ("MAX_TOKENS".equals(candidate.finishReason())) {
+                    throw new AiException("Gemini bị cắt do chạm maxOutputTokens=" + prompt.maxTokens()
+                            + " — nội dung cần trả về dài hơn giới hạn. Rút ngắn input hoặc tăng maxTokens.");
+                }
+                if (candidate.content() == null || candidate.content().parts() == null
+                        || candidate.content().parts().isEmpty()) {
+                    // SAFETY, RECITATION, PROHIBITED_CONTENT... — candidate có nhưng rỗng nội dung
+                    throw new AiException("Gemini không trả về nội dung, finishReason=" + candidate.finishReason());
+                }
+
+                String rawText = candidate.content().parts().get(0).text();
                 int tokensUsed = response.usageMetadata() != null
                         ? response.usageMetadata().totalTokenCount() : 0;
                 String modelUsed = response.modelVersion() != null
